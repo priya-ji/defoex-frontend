@@ -28,7 +28,7 @@ export default function LoginPage() {
       const msg = err.response?.data?.message;
       const isNetwork = !err.response;
       if (isNetwork) {
-        setError('Cannot connect to server. Make sure the backend is running on port 5000.');
+        setError('Cannot connect to server. Make sure the backend is running on port 5001.');
       } else {
         setError(msg || 'Invalid username or password.');
       }
