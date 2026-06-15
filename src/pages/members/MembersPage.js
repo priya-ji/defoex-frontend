@@ -8,6 +8,7 @@ import Pagination from '../../components/Pagination/Pagination';
 import Badge from '../../components/Badge/Badge';
 import Loading from '../../components/Loading/Loading';
 import { memberService } from '../../services/memberService';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 import './MembersPage.css';
 
@@ -113,6 +114,11 @@ function NewRegistration() {
   const [adviser, setAdviser] = useState(null);
   const [adviserErr, setAdviserErr] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [advisers, setAdvisers] = useState([]);
+
+  useEffect(() => {
+    api.get('/api/advisers/').then(r => setAdvisers(r.data.data || [])).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     salutation: 'Mr', full_name: '', father_spouse_name: '', date_of_birth: '', gender: 'Male',
     marital_status: 'Single', nationality: 'Indian', mobile: '', email: '', phone_office: '',
@@ -173,12 +179,36 @@ function NewRegistration() {
         <div className="reg-step">
           <h3 className="step-title">Verify Adviser ID</h3>
           <p className="step-desc">Every new investor must be registered under an active Adviser ID.</p>
+          {advisers.length > 0 && (
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:'0.78rem',fontWeight:600,color:'var(--text-secondary)',marginBottom:5}}>
+                Available Adviser Codes — click to select:
+              </div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {advisers.map(a => (
+                  <button key={a.adviser_code}
+                    style={{padding:'4px 12px',fontSize:'0.75rem',background:adviserCode===a.adviser_code?'var(--primary)':'var(--bg-input)',color:adviserCode===a.adviser_code?'#fff':'var(--text-primary)',border:'1px solid var(--border)',borderRadius:20,cursor:'pointer',fontFamily:'monospace'}}
+                    onClick={() => setAdviserCode(a.adviser_code)}>
+                    {a.adviser_code} — {a.full_name} ({a.rank_name})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="adviser-verify-row">
-            <Field label="Enter Promoter ID" required error={adviserErr}>
-              <Input value={adviserCode} onChange={e => setAdviserCode(e.target.value)} placeholder="e.g. ADV2026001234" />
+            <Field label="Enter Adviser Code" required error={adviserErr}>
+              <Input value={adviserCode}
+                onChange={e => setAdviserCode(e.target.value.trim())}
+                placeholder="DFX-2026-000001"
+                style={{fontFamily:'monospace'}} />
             </Field>
-            <button className="btn btn-primary" onClick={verifyAdviser}>Verify</button>
+            <button className="btn btn-primary" onClick={verifyAdviser}>Verify →</button>
           </div>
+          {adviserErr && adviserErr.includes('Investor ID') && (
+            <div style={{background:'var(--danger-bg)',border:'1px solid var(--danger)',borderRadius:'var(--border-radius-sm)',padding:'8px 12px',fontSize:'0.8rem',color:'var(--danger)',marginTop:4}}>
+              ❌ <strong>Wrong ID!</strong> You entered an Investment IRN. Adviser codes look like <code>DFX-2026-000001</code>. Use the buttons above to select the correct adviser.
+            </div>
+          )}
           <div className="reg-form-row mt-2">
             <Field label="Member Type">
               <Select value={form.member_type} onChange={e => set('member_type', e.target.value)}>

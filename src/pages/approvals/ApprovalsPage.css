@@ -1,1 +1,149 @@
 /* Approvals uses shared styles from global + MembersPage.css tabs */
+/* Summary cards */
+.approval-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .as-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--border-radius-lg);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: var(--shadow-card);
+  }
+  .as-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .as-card.active { border-color: var(--primary); background: var(--primary-glow); }
+  .as-count {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--warning);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .as-count.accent { color: var(--primary); }
+  .as-label { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 3px; }
+  .as-sub   { font-size: 0.75rem; color: var(--text-muted); }
+  
+  /* Tab count badge */
+  .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    background: var(--warning);
+    color: #fff;
+    border-radius: 9px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0 4px;
+    margin-left: 5px;
+  }
+  .tab-count.accent { background: var(--primary); }
+  
+  /* Table enhancements */
+  .clickable-row { cursor: pointer; }
+  .clickable-row:hover td { background: var(--primary-glow) !important; }
+  
+  .id-code {
+    font-family: monospace;
+    font-size: 0.78rem;
+    background: var(--bg-table-head);
+    padding: 2px 7px;
+    border-radius: 4px;
+    color: var(--primary);
+  }
+  .id-code.adv { color: var(--warning); background: var(--warning-bg); }
+  .id-code.irn { color: var(--success); background: var(--success-bg); }
+  
+  .action-btns { display: flex; gap: 5px; flex-wrap: nowrap; }
+  
+  /* Empty row */
+  .empty-row {
+    text-align: center;
+    padding: 48px 24px !important;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+  .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+  
+  /* Detail modal */
+  .detail-modal {}
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .plan-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .detail-section {
+    background: var(--bg-input);
+    border-radius: var(--border-radius-sm);
+    padding: 14px;
+  }
+  .ds-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--primary);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    gap: 8px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row span { color: var(--text-muted); white-space: nowrap; }
+  .detail-row strong { text-align: right; word-break: break-all; }
+  
+  /* Wallet impact */
+  .wallet-impact {
+    background: var(--bg-sidebar);
+    border-radius: var(--border-radius-sm);
+    padding: 12px;
+    margin-top: 8px;
+  }
+  .wi-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .wi-row:last-child { border-bottom: none; }
+  .wi-arrow { color: #ef9a9a; font-weight: 700; }
+  .wi-plus  { color: #a5d6a7; font-weight: 700; }
+  
+  /* Modal actions */
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  
+  @media (max-width: 900px) {
+    .approval-summary { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .plan-detail-grid { grid-template-columns: 1fr; }
+  }

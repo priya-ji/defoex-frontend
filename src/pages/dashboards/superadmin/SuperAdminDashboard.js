@@ -12,13 +12,15 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       reportService.dashboardStats(),
       reportService.businessSummary()
     ]).then(([s, b]) => {
-      setStats(s.data.data);
-      setSummary(b.data.data);
-    }).catch(() => {}).finally(() => setLoading(false));
+      if (s.status === 'fulfilled') setStats(s.value.data.data);
+      else setStats({ total_members:0, total_investments:0, monthly_business:0, pending_members:0, pending_investments:0 });
+      if (b.status === 'fulfilled') setSummary(b.value.data.data);
+      else setSummary(null);
+    }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Loading />;

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import PrintReceipt from './PrintReceipt';
+import { useAuth } from '../../context/AuthContext';
 import Panel from '../../components/Panel/Panel';
 import Field, { Input, Select } from '../../components/Field/Field';
 import Badge from '../../components/Badge/Badge';
@@ -15,7 +17,16 @@ const MIS_TABLE = {
   '5Y': { months: 60, label: '5 Years' },
   '7Y': { months: 84, label: '7 Years' },
 };
-const ROI_MAP = { '3Y': 1.1667, '5Y': 1.3333, '7Y': 1.3571 };
+// Exact ROI using integer arithmetic: maturity = total * num / den
+const ROI = {
+  '3Y': { num: 7,  den: 6,  pct: '16.67', label: '16.67%' },  // 4200/3600 = 7/6
+  '5Y': { num: 4,  den: 3,  pct: '33.33', label: '33.33%' },  // 8000/6000 = 4/3
+  '7Y': { num: 19, den: 14, pct: '35.71', label: '35.71%' },  // 11400/8400 = 19/14
+};
+const calcMaturity = (monthly, tenure, months) => {
+  const r = ROI[tenure];
+  return Math.round((monthly * months * r.num) / r.den);
+};
 const PLAN_DATA = [100,200,500,1000,1500,2000,2500,3000,3500,4000,5000,6000,7500,9000,10000,12000,15000,20000,25000,30000];
 
 export default function InvestmentsPage() {
@@ -42,22 +53,21 @@ function PlanList() {
   const [data, setData] = useState({ items: [], total: 0, pages: 1, current_page: 1 });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [printIrn, setPrintIrn] = useState(null);
-  const [printData, setPrintData] = useState(null);
+  const [receiptIrn, setReceiptIrn] = useState(null);
 
   const fetch = (p = 1) => {
     setLoading(true);
-    investmentService.list({ page: p }).then(r => setData(r.data.data || {})).finally(() => setLoading(false));
+    investmentService.list({ page: p })
+      .then(r => setData(r.data.data || {}))
+      .catch(e => {
+        const msg = e.response?.data?.message || 'Cannot connect to server. Check Flask is running.';
+        toast.error(msg);
+        setData({ items: [], total: 0, pages: 1, current_page: 1 });
+      })
+      .finally(() => setLoading(false));
   };
   useEffect(() => { fetch(page); }, [page]);
 
-  const showPrint = async (irn) => {
-    try {
-      const { data } = await investmentService.print(irn);
-      setPrintData(data.data);
-      setPrintIrn(irn);
-    } catch { toast.error('Failed to load record'); }
-  };
 
   const fmt = n => `₹${(n||0).toLocaleString('en-IN')}`;
 
@@ -88,7 +98,10 @@ function PlanList() {
                     <td><Badge status={p.approval_status} /></td>
                     <td><Badge status={p.status} /></td>
                     <td>
-                      <button className="btn btn-outline btn-sm" onClick={() => showPrint(p.irn)}>Print</button>
+                      {user?.role === 'superadmin'
+  ? <button className="btn btn-primary btn-sm" onClick={() => setReceiptIrn(p.irn)}>📜 Bond</button>
+  : <span style={{fontSize:'0.72rem',color:'var(--text-muted)',background:'var(--bg-input)',padding:'3px 8px',borderRadius:4}}>Admin only</span>
+}
                     </td>
                   </tr>
                 ))}
@@ -102,59 +115,9 @@ function PlanList() {
         )}
       </Panel>
 
-      {/* Print Modal */}
-      {printIrn && printData && (
-        <div className="print-overlay" onClick={() => setPrintIrn(null)}>
-          <div className="print-card" onClick={e => e.stopPropagation()}>
-            <div className="print-header">
-              <div className="print-logo">D</div>
-              <div>
-                <div className="print-company">DEFOEX INFRATECH PVT. LTD.</div>
-                <div className="print-cin">CIN – U68100MP2026PTC083560</div>
-              </div>
-              <div className="print-irn">{printData.irn}</div>
-            </div>
-            <div className="print-body">
-              {printData.investor && (
-                <div className="print-section">
-                  <div className="print-section__title">INVESTOR DETAILS</div>
-                  <div className="print-grid">
-                    <div><span>Investor Name</span><strong>{printData.investor.full_name}</strong></div>
-                    <div><span>Father's Name</span><strong>{printData.investor.father_spouse_name}</strong></div>
-                    <div><span>Mobile No.</span><strong>{printData.investor.mobile}</strong></div>
-                    <div><span>Date of Birth</span><strong>{printData.investor.date_of_birth}</strong></div>
-                    <div><span>City</span><strong>{printData.investor.corr_city}, {printData.investor.corr_state}</strong></div>
-                    <div><span>Investor ID</span><strong>{printData.investor.investor_id}</strong></div>
-                    <div><span>Adviser ID</span><strong>{printData.investor.adviser_code}</strong></div>
-                    <div><span>Nominee</span><strong>{printData.investor.nominee_name} ({printData.investor.nominee_relationship})</strong></div>
-                  </div>
-                </div>
-              )}
-              <div className="print-section">
-                <div className="print-section__title">INVESTMENT PLAN</div>
-                <div className="print-grid">
-                  <div><span>Plan Name</span><strong>{printData.investment?.plan_name}</strong></div>
-                  <div><span>Investment Term</span><strong>Monthly</strong></div>
-                  <div><span>Plan Tenure</span><strong>{printData.investment?.plan_tenure}</strong></div>
-                  <div><span>Investment Date</span><strong>{printData.investment?.investment_date}</strong></div>
-                  <div><span>Status</span><strong>{printData.status_label}</strong></div>
-                  <div><span>Next Due Date</span><strong>{printData.investment?.due_date}</strong></div>
-                  <div><span>Monthly Amount</span><strong style={{color:'var(--primary)'}}>{fmt(printData.investment?.monthly_amount)}</strong></div>
-                  <div><span>Total Investment</span><strong>{fmt(printData.investment?.total_investment_amount)}</strong></div>
-                  <div><span>Maturity Amount</span><strong style={{color:'var(--success)'}}>{fmt(printData.investment?.total_maturity_amount)}</strong></div>
-                </div>
-              </div>
-            </div>
-            <div className="print-footer">
-              <span className="print-quote">"Defoex : Together We Build, Together We Grow..."</span>
-              <div className="print-sign">Sign. Authority</div>
-            </div>
-            <div style={{textAlign:'center',marginTop:16}}>
-              <button className="btn btn-primary" onClick={() => window.print()}>🖨️ Print</button>
-              <button className="btn btn-outline" onClick={() => setPrintIrn(null)} style={{marginLeft:8}}>Close</button>
-            </div>
-          </div>
-        </div>
+
+      {receiptIrn && (
+        <PrintReceipt irn={receiptIrn} onClose={() => setReceiptIrn(null)} />
       )}
     </>
   );
@@ -174,7 +137,7 @@ function NewPlan() {
     if (form.monthly_amount && form.plan_tenure) {
       const months = MIS_TABLE[form.plan_tenure].months;
       const total = form.monthly_amount * months;
-      const maturity = total * ROI_MAP[form.plan_tenure];
+      const maturity = calcMaturity(parseFloat(form.monthly_amount), form.plan_tenure, plan['months']);
       const dueDate = new Date(form.investment_date || Date.now());
       dueDate.setMonth(dueDate.getMonth() + 1);
       setPreview({
@@ -182,7 +145,7 @@ function NewPlan() {
         total_maturity: maturity,
         total_installments: months,
         due_date: dueDate.toISOString().split('T')[0],
-        roi_pct: ((ROI_MAP[form.plan_tenure] - 1) * 100).toFixed(2),
+        roi_pct: ROI[form.plan_tenure].label,
       });
     }
   }, [form.monthly_amount, form.plan_tenure, form.investment_date]);
@@ -251,7 +214,7 @@ function NewPlan() {
             <div className="preview-row"><span>Monthly Amount</span><strong style={{color:'var(--primary)'}}>{fmt(form.monthly_amount)}</strong></div>
             <div className="preview-row"><span>Total Investment</span><strong>{fmt(preview.total_investment)}</strong></div>
             <div className="preview-row big"><span>Maturity Amount</span><strong style={{color:'var(--success)'}}>{fmt(preview.total_maturity)}</strong></div>
-            <div className="preview-row"><span>ROI</span><strong style={{color:'var(--accent)'}}>{preview.roi_pct}%</strong></div>
+            <div className="preview-row"><span>ROI</span><strong style={{color:'var(--accent)'}}>{preview.roi_pct}</strong></div>
             <div className="preview-row"><span>First Due Date</span><strong>{preview.due_date}</strong></div>
           </div>
         )}
@@ -265,9 +228,9 @@ function MISChart() {
   const fmt = n => n?.toLocaleString('en-IN');
   const plans = PLAN_DATA.map((amt, i) => ({
     sno: i+1, amt,
-    t3_total: amt*36, t3_roi: amt*36*1.1667,
-    t5_total: amt*60, t5_roi: amt*60*1.3333,
-    t7_total: amt*84, t7_roi: amt*84*1.3571,
+    t3_total: amt*36, t3_roi: calcMaturity(amt,'3Y',36),
+    t5_total: amt*60, t5_roi: calcMaturity(amt,'5Y',60),
+    t7_total: amt*84, t7_roi: calcMaturity(amt,'7Y',84),
   }));
 
   return (
