@@ -81,12 +81,26 @@ function RegApprovals({ onRefresh }) {
   const act = async (member, action) => {
     setActing(true);
     try {
-      await memberService.approve(member.id, action);
-      toast.success(
-        action === 'approve'
-          ? `✅ Registration approved for ${member.full_name}`
-          : `❌ Registration rejected for ${member.full_name}`
-      );
+      const { data } = await memberService.approve(member.id, action);
+      if (action === 'approve') {
+        const creds = data?.data?.credentials;
+        toast.success(`✅ Registration approved for ${member.full_name}`, { duration: 4000 });
+        if (creds) {
+          // Show credentials in a prominent toast
+          setTimeout(() => {
+            toast((t) => (
+              <div style={{fontFamily:'monospace',lineHeight:1.8}}>
+                <div style={{fontWeight:700,color:'#00c853',marginBottom:4}}>🎉 Investor Account Created!</div>
+                <div>Username: <strong>{creds.username}</strong></div>
+                <div>Password: <strong>{creds.password}</strong></div>
+                <div style={{fontSize:'0.75rem',color:'#999',marginTop:4}}>Save these credentials for the investor</div>
+              </div>
+            ), { duration: 12000, style: { minWidth: 280 } });
+          }, 500);
+        }
+      } else {
+        toast.success(`❌ Registration rejected for ${member.full_name}`);
+      }
       setConfirm(null);
       setDetail(null);
       load();
