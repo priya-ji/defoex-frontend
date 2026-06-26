@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -7,10 +7,18 @@ import './LoginPage.css';
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({
+    username: process.env.NODE_ENV === 'development' ? 'superadmin' : '',
+    password: process.env.NODE_ENV === 'development' ? 'admin123' : '',
+  });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +29,10 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const user = await login(form);
+      const user = await login({
+        username: form.username.trim(),
+        password: form.password,
+      });
       toast.success(`Welcome, ${user.full_name}!`);
       navigate('/dashboard');
     } catch (err) {
@@ -30,7 +41,7 @@ export default function LoginPage() {
       if (isNetwork) {
         setError('Cannot connect to server. Make sure the backend is running on port 5001.');
       } else {
-        setError(msg || 'Invalid username or password.');
+        setError(msg || 'Invalid username or password. Passwords are case-sensitive.');
       }
     } finally {
       setLoading(false);
@@ -63,7 +74,7 @@ export default function LoginPage() {
         <div className="login-credentials-hint">
           <div className="hint-title">Default Login</div>
           <div className="hint-row"><span>Username</span><code>superadmin</code></div>
-          <div className="hint-row"><span>Password</span><code>Defoex@2024</code></div>
+          <div className="hint-row"><span>Password</span><code>admin123</code></div>
         </div>
 
         <div className="login-quote">"DefOex : Together We Build, Together We Grow..."</div>
