@@ -4,6 +4,7 @@ import Field, { Input, Select } from '../../components/Field/Field';
 import Loading from '../../components/Loading/Loading';
 import Modal from '../../components/Modal/Modal';
 import api from '../../services/api';
+import { branchService } from '../../services/branchService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -27,7 +28,7 @@ export default function AdvisersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.allSettled([api.get('/api/advisers/'), api.get('/api/branches/')])
+    Promise.allSettled([api.get('/api/advisers/'), branchService.list()])
       .then(([a,b]) => {
         if (a.status==='fulfilled') setAdvisers(a.value.data.data||[]);
         if (b.status==='fulfilled') setBranches(b.value.data.data||[]);

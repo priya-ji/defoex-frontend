@@ -6,6 +6,7 @@ import Field, { Input, Select } from '../../components/Field/Field';
 import Loading from '../../components/Loading/Loading';
 import Alert from '../../components/Alert/Alert';
 import api from '../../services/api';
+import { branchService } from '../../services/branchService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './UsersPage.css';
@@ -45,7 +46,7 @@ export default function UsersPage() {
 
   const load = () => {
     setLoading(true);
-    Promise.allSettled([api.get('/api/users/'), api.get('/api/branches/')])
+    Promise.allSettled([api.get('/api/users/'), branchService.list()])
       .then(([u, b]) => {
         if (u.status === 'fulfilled') setUsers(u.value.data.data || []);
         if (b.status === 'fulfilled') setBranches(b.value.data.data || []);

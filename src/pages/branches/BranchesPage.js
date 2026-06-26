@@ -5,7 +5,7 @@ import Modal from '../../components/Modal/Modal';
 import Field, { Input, Select } from '../../components/Field/Field';
 import Loading from '../../components/Loading/Loading';
 import Alert from '../../components/Alert/Alert';
-import api from '../../services/api';
+import { branchService } from '../../services/branchService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './BranchesPage.css';
@@ -33,7 +33,10 @@ export default function BranchesPage() {
 
   const load = () => {
     setLoading(true);
-    api.get('/api/branches/').then(r => setBranches(r.data.data || [])).finally(() => setLoading(false));
+    branchService.list()
+      .then(r => setBranches(r.data.data || []))
+      .catch(() => toast.error('Failed to load branches'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
@@ -44,7 +47,7 @@ export default function BranchesPage() {
     if (!form.branch_code || !form.branch_name) return toast.error('Branch code and name required');
     setSaving(true);
     try {
-      await api.post('/api/branches/', form);
+      await branchService.create(form);
       toast.success('Branch created successfully!');
       setShowCreate(false);
       setForm({ branch_code:'', branch_name:'', city:'', state:'Madhya Pradesh', pincode:'', manager_name:'', manager_email:'', manager_mobile:'' });
@@ -58,7 +61,7 @@ export default function BranchesPage() {
     if (!topupAmt || parseFloat(topupAmt) <= 0) return toast.error('Enter valid amount');
     setSaving(true);
     try {
-      await api.post(`/api/branches/${topupBranch.id}/topup`, { amount: parseFloat(topupAmt), description: topupDesc || 'Admin top-up' });
+      await branchService.topup(topupBranch.id, { amount: parseFloat(topupAmt), description: topupDesc || 'Admin top-up' });
       toast.success(`₹${parseFloat(topupAmt).toLocaleString('en-IN')} added!`);
       setShowTopup(false); setTopupAmt(''); setTopupDesc('');
       load();
@@ -68,7 +71,7 @@ export default function BranchesPage() {
   };
 
   const openDetail = async (b) => {
-    const { data } = await api.get(`/api/branches/${b.id}`);
+    const { data } = await branchService.get(b.id);
     setShowDetail(data.data);
   };
 

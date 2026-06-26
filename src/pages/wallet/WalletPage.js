@@ -3,7 +3,7 @@ import Panel from '../../components/Panel/Panel';
 import Field, { Input, Select } from '../../components/Field/Field';
 import Loading from '../../components/Loading/Loading';
 import Alert from '../../components/Alert/Alert';
-import api from '../../services/api';
+import { branchService } from '../../services/branchService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './WalletPage.css';
@@ -39,8 +39,8 @@ function AdminWalletView() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.allSettled([
-      api.get('/api/branches/admin-wallet'),
-      api.get('/api/branches/'),
+      branchService.adminWallet(),
+      branchService.list(),
     ]).then(([walletRes, branchRes]) => {
       if (walletRes.status === 'fulfilled') {
         const d = walletRes.value.data.data;
@@ -70,7 +70,7 @@ function AdminWalletView() {
     if (!amt || amt <= 0) return toast.error('Enter valid amount');
     setTopping(true);
     try {
-      const { data: r } = await api.post(`/api/branches/${selBranch}/topup`, {
+      await branchService.topup(selBranch, {
         amount: amt, description: desc || 'Admin top-up'
       });
       toast.success(`₹${amt.toLocaleString('en-IN')} sent to branch!`);
@@ -254,8 +254,8 @@ function BMWalletView() {
     if (!branchId) return;
     setLoading(true);
     Promise.allSettled([
-      api.get(`/api/branches/${branchId}`),
-      api.get(`/api/branches/${branchId}/wallet-history`),
+      branchService.get(branchId),
+      branchService.walletHistory(branchId),
     ]).then(([b, h]) => {
       if (b.status === 'fulfilled') setData(b.value.data.data?.wallet);
       if (h.status === 'fulfilled') setTxns(h.value.data.data?.items || []);
