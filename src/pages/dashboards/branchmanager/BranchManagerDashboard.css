@@ -1,6 +1,39 @@
 .bm-dashboard {}
-.bm-quick-actions { display: flex; gap: 8px; }
-.wallet-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dashboard-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.bm-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.bm-quick-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wallet-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
 .wallet-big-card {
   background: var(--bg-sidebar);
   border-radius: var(--border-radius);
@@ -9,34 +42,115 @@
   position: relative;
   overflow: hidden;
 }
-.wallet-big-card.accent { background: linear-gradient(135deg, var(--primary), var(--accent)); }
+
+.wallet-big-card.accent {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.wallet-big-card.low {
+  border: 2px solid var(--warning);
+}
+
 .wallet-big-card::after {
   content: '₹';
-  position: absolute; right: 20px; bottom: -10px;
-  font-size: 5rem; font-family: var(--font-display); font-weight: 800;
+  position: absolute;
+  right: 20px;
+  bottom: -10px;
+  font-size: 5rem;
+  font-family: var(--font-display);
+  font-weight: 800;
   opacity: 0.06;
 }
-.wbc-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.wbc-amount { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; }
-.wbc-amount.low { color: var(--warning); }
-.wbc-sub { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
 
-.dashboard-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-
-.quick-actions-list { display: flex; flex-direction: column; gap: 4px; }
-.qa-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; background: var(--bg-input);
-  border: 1px solid var(--border); border-radius: var(--border-radius-sm);
-  font-size: 0.83rem; color: var(--text-primary);
-  cursor: pointer; transition: all var(--transition);
-  text-align: left; width: 100%;
+.wbc-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
-.qa-item:hover { border-color: var(--primary); background: var(--primary-glow); color: var(--primary); }
-.qa-icon { font-size: 1rem; }
-.qa-arrow { margin-left: auto; opacity: 0.4; }
+
+.wbc-amount {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.wbc-amount.low {
+  color: var(--warning);
+}
+
+.wbc-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+}
+
+.dashboard-charts {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qa-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.83rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  width: 100%;
+}
+
+.qa-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-glow);
+  color: var(--primary);
+}
+
+.qa-icon {
+  font-size: 1rem;
+}
+
+.qa-arrow {
+  margin-left: auto;
+  opacity: 0.4;
+}
+
+.bm-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
 
 @media (max-width: 900px) {
-  .wallet-cards { grid-template-columns: 1fr; }
-  .dashboard-charts { grid-template-columns: 1fr; }
+  .dashboard-header {
+    flex-direction: column;
+  }
+
+  .bm-header-right {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .wallet-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-charts {
+    grid-template-columns: 1fr;
+  }
 }

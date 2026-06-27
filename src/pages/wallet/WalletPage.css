@@ -1,20 +1,22 @@
 /* ── Admin Wallet Hero ── */
 .admin-wallet-hero {
-  display: flex; align-items: center; gap: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
   background: var(--bg-sidebar);
   border-radius: var(--border-radius-lg);
   padding: 24px 28px;
   margin-bottom: 20px;
   box-shadow: var(--shadow-lg);
-  flex-wrap: wrap; gap: 20px;
 }
-.awh-left { flex: 0 0 auto; }
+
+.awh-left { flex: 0 0 auto; min-width: 180px; }
 .awh-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
-.awh-amount { font-family: var(--font-display); font-size: 2.4rem; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
+.awh-amount { font-family: var(--font-display); font-size: clamp(1.4rem, 3vw, 2.4rem); font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 4px; word-break: break-word; }
 .awh-sub { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
-.awh-divider { width: 1px; height: 80px; background: rgba(255,255,255,0.1); flex-shrink: 0; margin: 0 24px; }
-.awh-mid { display: flex; gap: 28px; flex: 1; }
-.awh-stat { }
+.awh-divider { width: 1px; height: 80px; background: rgba(255,255,255,0.1); flex-shrink: 0; margin: 0 8px; }
+.awh-mid { display: flex; gap: 28px; flex: 1; flex-wrap: wrap; }
 .awh-stat-label { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
 .awh-stat-val { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; }
 .awh-stat-val.red   { color: #ef9a9a; }
@@ -23,18 +25,45 @@
 .awh-right { flex: 0 0 140px; text-align: center; }
 .awh-pct { font-family: var(--font-display); font-size: 2rem; font-weight: 900; color: #fff; margin: 4px 0; }
 .awh-bar-bg { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 6px; }
-.awh-bar-fill { height: 100%; background: linear-gradient(90deg, #4fc3f7, #81c784); border-radius: 3px; transition: width 0.5s ease; }
-.awh-alert { font-size: 0.7rem; color: #ffcc02; margin-top: 8px; font-weight: 600; }
+.awh-bar-fill { height: 100%; background: linear-gradient(90deg, #4fc3f7, #81c784); border-radius: 3px; transition: width 0.5s ease; min-width: 0; }
+
+@media (max-width: 900px) {
+  .awh-divider { display: none; }
+  .awh-mid { width: 100%; }
+}
 
 /* ── Wallet Grid ── */
 .wallet-grid {
-  display: grid; grid-template-columns: 380px 1fr; gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(320px, 400px) 1fr;
+  gap: 16px;
   margin-bottom: 20px;
+  align-items: start;
 }
-@media (max-width:900px) { .wallet-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 900px) {
+  .wallet-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Top-up form ── */
+.topup-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: -4px 0 10px;
+  line-height: 1.4;
+}
+
+.topup-hint strong {
+  color: var(--primary);
+}
 
 /* ── Quick amount buttons ── */
-.quick-amounts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
 .qa-btn {
   padding: 4px 12px; font-size: 0.78rem; font-weight: 600;
   background: var(--bg-input); color: var(--primary);
@@ -46,24 +75,104 @@
 .topup-note { font-size: 0.78rem; color: var(--text-muted); text-align: center; margin-top: 10px; }
 
 /* ── Branch wallet rows ── */
-.branch-wallet-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border);
-  margin-bottom: 6px; background: var(--bg-input);
-  position: relative;
+.branch-wallet-list {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
-.branch-wallet-row.low { border-color: var(--warning); background: var(--warning-bg); }
-.bwr-info { flex: 0 0 120px; }
-.bwr-name { font-weight: 700; font-size: 0.85rem; color: var(--text-primary); }
-.bwr-code { font-size: 0.72rem; color: var(--text-muted); font-family: monospace; }
-.bwr-balances { display: flex; gap: 16px; flex: 1; }
-.bwr-bal { display: flex; flex-direction: column; }
-.bwr-bal-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-.bwr-bal-val { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
-.bwr-bal-val.red   { color: var(--danger); }
-.bwr-bal-val.blue  { color: var(--primary); }
-.bwr-low { font-size: 0.7rem; font-weight: 700; color: var(--warning); }
+
+.branch-wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  background: var(--bg-input);
+}
+
+.branch-wallet-row.low {
+  border-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.bwr-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bwr-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bwr-code {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.bwr-balances {
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.bwr-bal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 90px;
+}
+
+.bwr-bal-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bwr-bal-val {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.bwr-bal-val.red { color: var(--danger); }
+.bwr-bal-val.blue { color: var(--primary); }
+
+.bwr-low-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--warning);
+  background: rgba(255, 152, 0, 0.15);
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .branch-wallet-row {
+    flex-wrap: wrap;
+  }
+
+  .bwr-balances {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .bwr-bal {
+    align-items: flex-start;
+  }
+}
 
 /* ── Txn badge ── */
 .txn-badge {

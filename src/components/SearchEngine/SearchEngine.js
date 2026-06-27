@@ -74,7 +74,19 @@ export default function SearchEngine() {
 
   return (
     <div className="se-root" ref={wrapRef}>
-      {/* ── 3 Search Type Buttons ── */}
+      <div className="se-type-bar">
+        {SEARCH_TYPES.map(t => (
+          <button
+            key={t.key}
+            type="button"
+            className={`se-type-btn ${activeType === t.key ? 'active' : ''}`}
+            onClick={() => switchType(t.key)}
+          >
+            <span className="se-type-icon">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* ── Search Input ── */}
       <div className="se-input-wrap">
