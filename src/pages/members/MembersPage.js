@@ -4,12 +4,15 @@ import Field, { Input, Select } from '../../components/Field/Field';
 import Loading from '../../components/Loading/Loading';
 import Modal from '../../components/Modal/Modal';
 import Alert from '../../components/Alert/Alert';
+import InvestorCredentialsModal, { showInvestorCredentialToasts } from '../../components/InvestorCredentialsModal/InvestorCredentialsModal';
 import api from '../../services/api';
 import { memberService } from '../../services/memberService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const STEPS = ['Adviser Verify', 'Personal Info', 'Address & KYC', 'Nominee & Bank', 'Confirm'];
+const todayISO = () => new Date().toISOString().split('T')[0];
+const INVESTOR_FEE = 10;
 
 export default function MembersPage() {
   const [view, setView] = useState('list');
@@ -244,6 +247,7 @@ function NewRegistration({ onDone }) {
   const [adviser,     setAdviser]     = useState(null);
   const [adviserErr,  setAdviserErr]  = useState('');
   const [submitting,  setSubmitting]  = useState(false);
+  const [credModal,   setCredModal]   = useState(null);
   const [form, setForm] = useState({
     salutation:'', full_name:'', father_spouse_name:'', date_of_birth:'', gender:'Male',
     marital_status:'Single', nationality:'Indian', mobile:'', phone_office:'', email:'',
@@ -253,8 +257,8 @@ function NewRegistration({ onDone }) {
     nominee_name:'', nominee_age:'', nominee_relationship:'', nominee_address:'',
     bank_name:'', account_number:'', ifsc_code:'', upi_id:'',
     occupation:'', annual_income:'',
-    member_type:'Investor', member_fees:10, promoter_fees:0, payment_mode:'Cash',
-    date_of_joining: new Date().toISOString().split('T')[0],
+    member_type:'Investor', member_fees:INVESTOR_FEE, promoter_fees:0, payment_mode:'Cash',
+    date_of_joining: todayISO(),
   });
 
   useEffect(()=>{
@@ -290,8 +294,21 @@ function NewRegistration({ onDone }) {
     }
     setSubmitting(true);
     try {
-      await memberService.register({ ...form, adviser_code: adviserCode.trim() });
-      toast.success('Registration submitted! Go to Approved Investor tab.');
+      const { data } = await memberService.register({
+        ...form,
+        adviser_code: adviserCode.trim(),
+        member_type: 'Investor',
+        member_fees: INVESTOR_FEE,
+        date_of_joining: todayISO(),
+      });
+      const creds = data.data?.credentials;
+      const investorId = data.data?.investor_id || '';
+      if (creds?.username) {
+        setCredModal(creds);
+        showInvestorCredentialToasts(creds);
+      } else {
+        toast.success(`Investor created! ID: ${investorId}`);
+      }
       onDone();
     } catch(e) {
       toast.error(e.response?.data?.message||'Registration failed');
@@ -299,6 +316,7 @@ function NewRegistration({ onDone }) {
   };
 
   return (
+    <>
     <Panel title="New Investor Registration">
       {/* Step indicators */}
       <div style={{display:'flex',alignItems:'center',marginBottom:24}}>
@@ -374,13 +392,10 @@ function NewRegistration({ onDone }) {
 
           <div style={{display:'flex',gap:16,marginTop:12,flexWrap:'wrap'}}>
             <Field label="Member Type">
-              <Select value={form.member_type} onChange={e=>set('member_type',e.target.value)}>
-                <option value="Investor">Investor</option>
-                <option value="Promoter Member">Promoter Member</option>
-              </Select>
+              <Input value="Investor" readOnly disabled />
             </Field>
             <Field label="Member Fees (₹)">
-              <Input type="number" value={form.member_fees} onChange={e=>set('member_fees',parseFloat(e.target.value))} />
+              <Input type="number" value={INVESTOR_FEE} readOnly disabled />
             </Field>
             <Field label="Payment Mode">
               <Select value={form.payment_mode} onChange={e=>set('payment_mode',e.target.value)}>
@@ -388,7 +403,7 @@ function NewRegistration({ onDone }) {
               </Select>
             </Field>
             <Field label="Date of Registration">
-              <Input type="date" value={form.date_of_joining} onChange={e=>set('date_of_joining',e.target.value)} />
+              <Input type="date" value={todayISO()} readOnly disabled />
             </Field>
           </div>
         </div>
@@ -488,7 +503,7 @@ function NewRegistration({ onDone }) {
               ['City',           form.corr_city||'—'],
               ['Nominee',        form.nominee_name||'—'],
               ['Bank',           form.bank_name||'—'],
-              ['Member Fees',    `\u20b9${form.member_fees}`],
+              ['Member Fees',    `\u20b9${INVESTOR_FEE}`],
               ['Payment Mode',   form.payment_mode],
             ].map(([k,v])=>(
               <div key={k} style={{padding:'5px 0',borderBottom:'1px solid var(--border)'}}>
@@ -526,6 +541,8 @@ function NewRegistration({ onDone }) {
         </div>
       </div>
     </Panel>
+    <InvestorCredentialsModal creds={credModal} onClose={() => setCredModal(null)} />
+  </>
   );
 }
 
@@ -554,22 +571,12 @@ function ApprovedInvestors({ onRefresh }) {
     try {
       const { data } = await api.post(`/api/registration/approve/${member.id}`,{ action });
       if (action==='approve') {
-        toast.success(`✅ Approved: ${member.full_name}`);
         const creds = data.data?.credentials;
-        if (creds) {
-          setTimeout(()=>setCredModal(creds), 300);
-          setTimeout(()=>{
-            toast((t)=>(
-              <div>
-                <div style={{fontWeight:700,color:'#00c853',marginBottom:6}}>🎉 Congratulations Investor Created!</div>
-                <div style={{fontFamily:'monospace',fontSize:'0.85rem',lineHeight:2}}>
-                  <div>Username: <strong>{creds.username}</strong></div>
-                  <div>Password: <strong>{creds.password}</strong></div>
-                </div>
-                <div style={{fontSize:'0.72rem',color:'#999',marginTop:4}}>10 digit hexadecimal</div>
-              </div>
-            ),{ duration:15000, style:{minWidth:260} });
-          }, 600);
+        if (creds?.username) {
+          setCredModal(creds);
+          showInvestorCredentialToasts(creds);
+        } else {
+          toast.success(`✅ Approved: ${member.full_name}`);
         }
       } else {
         toast.success(`Registration rejected`);
@@ -641,30 +648,8 @@ function ApprovedInvestors({ onRefresh }) {
         </table>
       </Panel>
 
-      {/* Congratulations Investor Created — DEFIN202601 */}
-      <Modal open={!!credModal} onClose={()=>setCredModal(null)} title="🎉 Congratulations Investor Created!" size="sm">
-        {credModal && (
-          <div style={{textAlign:'center',padding:'8px 0'}}>
-            <div style={{fontSize:'2.5rem',marginBottom:12}}>🎊</div>
-            <div style={{fontWeight:700,fontSize:'1rem',marginBottom:16,color:'var(--success)'}}>
-              Investor Account Created Successfully!
-            </div>
-            <div style={{background:'var(--bg-input)',borderRadius:'var(--border-radius-md)',padding:'16px',fontFamily:'monospace',fontSize:'0.9rem',lineHeight:2.5,marginBottom:12}}>
-              <div>Username: <strong style={{color:'var(--primary)'}}>{credModal.username}</strong></div>
-              <div>Password: <strong style={{color:'var(--primary)'}}>{credModal.password}</strong></div>
-            </div>
-            <div style={{fontSize:'0.78rem',color:'var(--text-muted)',marginBottom:16}}>
-              System generate password (10 digit hexadecimal)
-            </div>
-            <button className="btn btn-primary" onClick={()=>{
-              navigator.clipboard.writeText(`Username: ${credModal.username}\nPassword: ${credModal.password}`);
-              toast.success('Credentials copied!');
-            }}>Copy Credentials</button>
-            {' '}
-            <button className="btn btn-outline" onClick={()=>setCredModal(null)}>Close</button>
-          </div>
-        )}
-      </Modal>
+      {/* Credentials modal (approve flow for legacy pending records) */}
+      <InvestorCredentialsModal creds={credModal} onClose={() => setCredModal(null)} />
     </>
   );
 }

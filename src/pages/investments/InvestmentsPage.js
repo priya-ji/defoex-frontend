@@ -263,7 +263,8 @@ function NewMISPlan() {
       };
       const r = await api.post('/api/investment-plans/create-mis', payload);
       if (r.data.success) {
-        toast.success(r.data.message);
+        const planId = r.data.data?.irn || r.data.data?.plan_id;
+        toast.success(planId ? `${r.data.message} Plan ID: ${planId}` : r.data.message);
         setMemberId(''); setMemberInfo(null); setAmount(''); setTenure('3Y');
         setPaymentMode('Cash'); setTxnId(''); setUpiApp(''); setUpiErrors({});
       }
@@ -408,7 +409,8 @@ function NewSISPlan() {
       };
       const r = await api.post('/api/investment-plans/create-sis', payload);
       if (r.data.success) {
-        toast.success(r.data.message);
+        const planId = r.data.data?.irn || r.data.data?.plan_id;
+        toast.success(planId ? `${r.data.message} Plan ID: ${planId}` : r.data.message);
         setMemberId(''); setMemberInfo(null); setAmount('');
         setPaymentMode('Cash'); setTxnId(''); setUpiApp(''); setUpiErrors({});
       }
@@ -508,7 +510,10 @@ function MISContribution() {
       const r = await api.get('/api/investment-plans/list', { params: { per_page: 200 } });
       const search = investmentId.trim().toUpperCase();
       const found = (r.data.data || []).find(
-        (inv) => String(inv.id) === search || (inv.investor_id || '').toUpperCase() === search
+        (inv) =>
+          String(inv.id) === search ||
+          (inv.irn || inv.plan_id || '').toUpperCase() === search ||
+          (inv.investor_id || '').toUpperCase() === search
       );
       if (found) { setPlanInfo(found); toast.success('Plan loaded'); }
       else toast.error('Investment plan not found');
@@ -540,7 +545,8 @@ function MISContribution() {
       };
       const r = await api.post('/api/investment-plans/mis-contribution', payload);
       if (r.data.success) {
-        toast.success(r.data.message);
+        const planId = r.data.data?.irn || r.data.data?.plan_id;
+        toast.success(planId ? `${r.data.message} Plan ID: ${planId}` : r.data.message);
         setPaymentMode('Cash'); setTxnId(''); setUpiApp(''); setUpiErrors({});
         loadPlan();
       }
@@ -554,11 +560,11 @@ function MISContribution() {
         <h2 className="card-title">MIS Contribution</h2>
 
         <div className="field-group">
-          <label className="field-label">Investment ID / Investor ID</label>
+          <label className="field-label">Plan ID (INV…) / Investor ID</label>
           <div className="input-btn-row">
             <input
               className="field-input"
-              placeholder="Enter Investment ID or Investor ID"
+              placeholder="e.g. INV20260001"
               value={investmentId}
               onChange={(e) => setInvestmentId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && loadPlan()}
@@ -571,6 +577,7 @@ function MISContribution() {
 
         {planInfo && (
           <div className="contrib-info">
+            <div className="contrib-row"><span>Plan ID</span><strong className="mono">{planInfo.irn || planInfo.plan_id}</strong></div>
             <div className="contrib-row"><span>Plan</span><strong>{planInfo.plan_name}</strong></div>
             <div className="contrib-row"><span>Investor ID</span><strong className="mono">{planInfo.investor_id}</strong></div>
             <div className="contrib-row"><span>Status</span><span className={`status-pill status-${planInfo.status}`}>{planInfo.status}</span></div>
@@ -626,6 +633,7 @@ function ApproveInvestment() {
 
   const filtered = investments.filter((inv) =>
     !search ||
+    (inv.irn || inv.plan_id || '').toLowerCase().includes(search.toLowerCase()) ||
     (inv.investor_id || '').toLowerCase().includes(search.toLowerCase()) ||
     String(inv.id).includes(search)
   );
@@ -636,7 +644,7 @@ function ApproveInvestment() {
         <h2 className="card-title">Approve Investment</h2>
         <input
           className="search-input"
-          placeholder="Search by Investor ID or Plan ID…"
+          placeholder="Search by Plan ID (INV…) or Investor ID…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -651,7 +659,7 @@ function ApproveInvestment() {
           <table className="inv-table">
             <thead>
               <tr>
-                <th>#</th><th>Investor ID</th><th>Plan</th>
+                <th>#</th><th>Plan ID</th><th>Investor ID</th><th>Plan</th>
                 <th>Monthly</th><th>Total Inv.</th><th>Maturity</th>
                 <th>Payment</th><th>Txn ID</th><th>UPI App</th><th>Date</th><th>Actions</th>
               </tr>
@@ -660,7 +668,8 @@ function ApproveInvestment() {
               {filtered.map((inv, i) => (
                 <tr key={inv.id}>
                   <td>{i + 1}</td>
-                  <td className="mono-cell">{inv.investor_id}</td>
+                  <td className="mono-cell">{inv.irn || inv.plan_id}</td>
+                  <td className="mono-cell muted">{inv.investor_id}</td>
                   <td>{inv.plan_name}</td>
                   <td>{fmtINR(inv.monthly_amount)}</td>
                   <td>{fmtINR(inv.total_investment_amount)}</td>
@@ -737,7 +746,7 @@ function AllPlans() {
           <table className="inv-table">
             <thead>
               <tr>
-                <th>#</th><th>Investor ID</th><th>Plan</th>
+                <th>#</th><th>Plan ID</th><th>Investor ID</th><th>Plan</th>
                 <th>Monthly</th><th>Total Inv.</th><th>Maturity</th>
                 <th>Payment</th><th>Status</th><th>Date</th>
               </tr>
@@ -746,7 +755,8 @@ function AllPlans() {
               {investments.map((inv, i) => (
                 <tr key={inv.id}>
                   <td>{i + 1}</td>
-                  <td className="mono-cell">{inv.investor_id}</td>
+                  <td className="mono-cell">{inv.irn || inv.plan_id}</td>
+                  <td className="mono-cell muted">{inv.investor_id}</td>
                   <td>{inv.plan_name}</td>
                   <td>{fmtINR(inv.monthly_amount)}</td>
                   <td>{fmtINR(inv.total_investment_amount)}</td>

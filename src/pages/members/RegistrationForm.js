@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { memberService } from '../../services/memberService';
+import InvestorCredentialsModal, { showInvestorCredentialToasts } from '../../components/InvestorCredentialsModal/InvestorCredentialsModal';
 import './RegistrationForm.css';
 
 const SALUTATIONS  = ['Mr','Mrs','Ms','Dr','Prof'];
@@ -20,6 +21,8 @@ const PAY_MODES    = ['Cash','UPI','NEFT','Cheque','DD'];
 const STATES       = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli','Daman & Diu','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry'];
 
 const STEPS = [{num:1,label:'Adviser Verify'},{num:2,label:'Personal Info'},{num:3,label:'Address & KYC'},{num:4,label:'Nominee & Bank'},{num:5,label:'Income & Review'}];
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const INVESTOR_FEE = 10;
 
 const calcAge = (dob) => {
   if (!dob) return '';
@@ -31,8 +34,8 @@ const calcAge = (dob) => {
 
 const INIT = {
   promoter_adviser_id:'', promoter_name:'', promoter_rank:'',
-  member_type:'Investor', registration_date:new Date().toISOString().slice(0,10),
-  member_fees:'10', payment_mode:'Cash',
+  member_type:'Investor', registration_date: todayISO(),
+  member_fees:String(INVESTOR_FEE), payment_mode:'Cash',
   salutation:'', full_name:'', father_spouse_name:'',
   date_of_birth:'', age:'', gender:'', marital_status:'',
   nationality:'Indian', mobile:'', phone_office:'', email:'',
@@ -98,6 +101,7 @@ function AddrFields({prefix,form,set,errors,disabled}){
 
 function Step1({form,set,errors}){
   const [busy,setBusy]=useState(false);
+  const today = todayISO();
   const verify=async()=>{
     const id=form.promoter_adviser_id.trim();
     if(!id){toast.error('Enter Promoter / Adviser ID');return;}
@@ -116,8 +120,12 @@ function Step1({form,set,errors}){
     <div className="rf-step">
       <h3 className="rf-step-h">Step 1 — Adviser / Promoter Verification</h3>
       <div className="rf-g2">
-        <F label="Member Type" req><S value={form.member_type} onChange={e=>set(p=>({...p,member_type:e.target.value}))} opts={['Investor','Adviser']}/></F>
-        <F label="Registration Date" req><I type="date" value={form.registration_date} onChange={e=>set(p=>({...p,registration_date:e.target.value}))}/></F>
+        <F label="Member Type" req hint="Investor registration only">
+          <I value="Investor" readOnly disabled/>
+        </F>
+        <F label="Registration Date" req hint="Fixed to today">
+          <I type="date" value={today} readOnly disabled/>
+        </F>
       </div>
       <F label="Promoter Adviser ID" req err={errors.promoter_adviser_id}>
         <div className="rf-row-btn">
@@ -132,7 +140,9 @@ function Step1({form,set,errors}){
         </div>
       )}
       <div className="rf-g2">
-        <F label="Member Fees (₹)" req><I type="number" value={form.member_fees} onChange={e=>set(p=>({...p,member_fees:e.target.value}))} placeholder="10"/></F>
+        <F label="Member Fees (₹)" req hint="Fixed registration fee">
+          <I type="number" value={INVESTOR_FEE} readOnly disabled/>
+        </F>
         <F label="Payment Mode" req><S value={form.payment_mode} onChange={e=>set(p=>({...p,payment_mode:e.target.value}))} opts={PAY_MODES}/></F>
       </div>
     </div>
@@ -347,6 +357,7 @@ export default function RegistrationForm({onSuccess,memberType='Investor'}){
   const [form,setForm]=useState({...INIT,member_type:memberType});
   const [errors,setErrors]=useState({});
   const [loading,setLoading]=useState(false);
+  const [credModal,setCredModal]=useState(null);
 
   const next=()=>{const e=validators[step](form);setErrors(e);if(Object.keys(e).length===0)setStep(s=>Math.min(s+1,5));else toast.error('Please fix the highlighted errors');};
   const back=()=>{setStep(s=>Math.max(s-1,1));setErrors({});};
@@ -355,39 +366,65 @@ export default function RegistrationForm({onSuccess,memberType='Investor'}){
     setLoading(true);
     try{
       const payload={
-        promoter_adviser_id: form.promoter_adviser_id,
-        member_type:         form.member_type,
-        registration_date:   form.registration_date,
-        member_fee:          Number(form.member_fees),
-        payment_mode_fee:    form.payment_mode,
+        adviser_code:        form.promoter_adviser_id,
+        member_type:         'Investor',
+        date_of_joining:     todayISO(),
+        member_fees:         INVESTOR_FEE,
+        payment_mode:        form.payment_mode,
         salutation:          form.salutation,
         full_name:           form.full_name,
         father_spouse_name:  form.father_spouse_name,
         date_of_birth:       form.date_of_birth,
-        age:                 form.age?Number(form.age):null,
+        age:                 form.age ? Number(form.age) : null,
         gender:              form.gender,
         marital_status:      form.marital_status,
         nationality:         form.nationality,
         mobile:              form.mobile,
-        phone:               form.phone_office,
+        phone_office:        form.phone_office,
         email:               form.email,
         aadhar_number:       form.aadhar_number,
-        correspondence_address:{line1:form.corr_address,line2:'',city:form.corr_city,state:form.corr_state,pincode:form.corr_pincode},
-        permanent_address:{line1:form.perm_address,line2:'',city:form.perm_city,state:form.perm_state,pincode:form.perm_pincode,same_as_correspondence:form.same_as_corr},
-        nominee:{name:form.nominee_name,age:form.nominee_age?Number(form.nominee_age):null,relationship:form.nominee_relationship,same_as_member:form.nominee_same_as_member,address:{line1:form.nominee_address,line2:'',city:form.nominee_city,state:form.nominee_state,pincode:form.nominee_pincode}},
-        bank:{bank_name:form.bank_name,account_number:form.account_number,ifsc_code:form.ifsc_code,branch_name:form.bank_branch_name,pan_number:form.pan_number,upi_id:form.upi_id},
+        corr_address:        form.corr_address,
+        corr_city:           form.corr_city,
+        corr_state:          form.corr_state,
+        corr_pincode:        form.corr_pincode,
+        same_as_corr:        form.same_as_corr,
+        perm_address:        form.same_as_corr ? form.corr_address : form.perm_address,
+        perm_city:           form.same_as_corr ? form.corr_city : form.perm_city,
+        perm_state:          form.same_as_corr ? form.corr_state : form.perm_state,
+        perm_pincode:        form.same_as_corr ? form.corr_pincode : form.perm_pincode,
+        nominee_name:        form.nominee_name,
+        nominee_age:         form.nominee_age ? Number(form.nominee_age) : null,
+        nominee_relationship:form.nominee_relationship,
+        nominee_same_as_member: form.nominee_same_as_member,
+        nominee_address:     form.nominee_same_as_member ? form.corr_address : form.nominee_address,
+        nominee_city:        form.nominee_same_as_member ? form.corr_city : form.nominee_city,
+        nominee_state:       form.nominee_same_as_member ? form.corr_state : form.nominee_state,
+        nominee_pincode:     form.nominee_same_as_member ? form.corr_pincode : form.nominee_pincode,
+        bank_name:           form.bank_name,
+        account_number:      form.account_number,
+        ifsc_code:           form.ifsc_code,
+        bank_branch_name:    form.bank_branch_name,
+        pan_number:          form.pan_number,
+        upi_id:              form.upi_id,
         occupation:          form.occupation,
         professional_details:form.professional_details,
-        annual_income:       form.annual_income||null,
-        family_income:       form.family_income||null,
+        annual_income:       form.annual_income || null,
+        family_income:       form.family_income || null,
       };
       const r=await memberService.register(payload);
-      if(r.data.success){toast.success(`Submitted! ID: ${r.data.data?.investor_id||''}`);if(onSuccess)onSuccess(r.data.data);setStep(1);setForm({...INIT,member_type:memberType});}
+      if(r.data.success){
+        const creds=r.data.data?.credentials;
+        if(creds?.username){setCredModal(creds);showInvestorCredentialToasts(creds);}
+        else toast.success(`Investor created! ID: ${r.data.data?.investor_id||''}`);
+        if(onSuccess)onSuccess(r.data.data);
+        setStep(1);setForm({...INIT,member_type:memberType});
+      }
     }catch(e){toast.error(e.response?.data?.message||'Registration failed');}
     finally{setLoading(false);}
   };
 
   return(
+    <>
     <div className="rf-wrap">
       <div className="rf-stepper">
         {STEPS.map((s,i)=>(
@@ -412,5 +449,7 @@ export default function RegistrationForm({onSuccess,memberType='Investor'}){
         {step<5?<button className="rf-btn-next" onClick={next}>Next →</button>:<button className="rf-btn-submit" onClick={submit} disabled={loading}>{loading?'Submitting…':'✓ Submit Registration'}</button>}
       </div>
     </div>
+    <InvestorCredentialsModal creds={credModal} onClose={() => setCredModal(null)} />
+    </>
   );
 }

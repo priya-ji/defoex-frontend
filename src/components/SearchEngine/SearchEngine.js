@@ -5,7 +5,7 @@ import './SearchEngine.css';
 const fmt = n => n != null ? '\u20b9' + Number(n).toLocaleString('en-IN') : '\u2014';
 
 const SEARCH_TYPES = [
-  { key: 'irn',      label: 'Search by IRN Number',  placeholder: 'Enter IRN e.g. DFX-IRN-2026-00001',  icon: '\ud83d\udcdc' },
+  { key: 'irn',      label: 'Search by Plan ID',  placeholder: 'Enter Plan ID e.g. INV20260001',  icon: '\ud83d\udcdc' },
   { key: 'investor', label: 'Search by Investor',     placeholder: 'Enter name, investor ID or mobile',   icon: '\ud83d\udc64' },
   { key: 'adviser',  label: 'Search by Adviser',      placeholder: 'Enter adviser code, name or mobile',  icon: '\ud83c\udfc5' },
 ];

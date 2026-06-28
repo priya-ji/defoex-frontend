@@ -439,6 +439,7 @@
 .inv-table tr:hover td      { background: #fafafa; }
 
 .mono-cell { font-family: monospace; font-size: 12px; color: #1d4ed8; font-weight: 600; }
+.mono-cell.muted { color: #64748b; font-weight: 500; }
 .maturity-cell { font-weight: 700; color: #16a34a; }
 .small { font-size: 11px; }
 

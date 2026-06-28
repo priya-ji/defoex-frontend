@@ -6,8 +6,7 @@ import Modal from '../../components/Modal/Modal';
 import Alert from '../../components/Alert/Alert';
 import { memberService } from '../../services/memberService';
 import { investmentService } from '../../services/investmentService';
-import toast from 'react-hot-toast';
-import './ApprovalsPage.css';
+import InvestorCredentialsModal, { showInvestorCredentialToasts } from '../../components/InvestorCredentialsModal/InvestorCredentialsModal';
 
 export default function ApprovalsPage() {
   const [tab, setTab] = useState(0);
@@ -68,6 +67,7 @@ function RegApprovals({ onRefresh }) {
   const [detail, setDetail]   = useState(null);
   const [confirm, setConfirm] = useState(null); // {member, action}
   const [acting, setActing]   = useState(false);
+  const [credModal, setCredModal] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -84,19 +84,11 @@ function RegApprovals({ onRefresh }) {
       const { data } = await memberService.approve(member.id, action);
       if (action === 'approve') {
         const creds = data?.data?.credentials;
-        toast.success(`✅ Registration approved for ${member.full_name}`, { duration: 4000 });
-        if (creds) {
-          // Show credentials in a prominent toast
-          setTimeout(() => {
-            toast((t) => (
-              <div style={{fontFamily:'monospace',lineHeight:1.8}}>
-                <div style={{fontWeight:700,color:'#00c853',marginBottom:4}}>🎉 Investor Account Created!</div>
-                <div>Username: <strong>{creds.username}</strong></div>
-                <div>Password: <strong>{creds.password}</strong></div>
-                <div style={{fontSize:'0.75rem',color:'#999',marginTop:4}}>Save these credentials for the investor</div>
-              </div>
-            ), { duration: 12000, style: { minWidth: 280 } });
-          }, 500);
+        if (creds?.username) {
+          setCredModal(creds);
+          showInvestorCredentialToasts(creds);
+        } else {
+          toast.success(`✅ Registration approved for ${member.full_name}`, { duration: 4000 });
         }
       } else {
         toast.success(`❌ Registration rejected for ${member.full_name}`);
@@ -290,11 +282,11 @@ function RegApprovals({ onRefresh }) {
           </div>
         )}
       </Modal>
+
+      <InvestorCredentialsModal creds={credModal} onClose={() => setCredModal(null)} />
     </>
   );
 }
-
-/* ─── INVESTMENT PLAN APPROVALS ─── */
 function InvApprovals({ onRefresh }) {
   const [data, setData]       = useState({ items: [] });
   const [loading, setLoading] = useState(false);
@@ -351,7 +343,7 @@ function InvApprovals({ onRefresh }) {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>IRN</th>
+                  <th>Plan ID</th>
                   <th>Investor ID</th>
                   <th>Plan</th>
                   <th>Tenure</th>
@@ -411,7 +403,7 @@ function InvApprovals({ onRefresh }) {
               <div className="detail-section">
                 <div className="ds-title">Plan Information</div>
                 {[
-                  ['IRN',             detail.irn],
+                  ['Plan ID',         detail.irn || detail.plan_id],
                   ['Investor ID',     detail.investor_id],
                   ['Plan Name',       detail.plan_name],
                   ['Plan Type',       detail.plan_type],

@@ -29,11 +29,12 @@ const RANK_OPTIONS = [
   { id: 19, label: '19. House 7' }, { id: 20, label: '20. House 8' },
 ];
 const rankLabel = id => RANK_OPTIONS.find(r => r.id === id)?.label || `${id}`;
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const blank = () => ({
   promoter_adviser_id:'', promoter_name:'', promoter_rank:'', promoter_rank_id:null,
-  allowed_rank_id:null, allowed_rank_label:'',
-  registration_date: new Date().toISOString().slice(0,10),
+  max_allowed_rank_id:null,
+  registration_date: todayISO(),
   rank_id:null, rank:'', member_fees:'500', payment_mode:'Cash',
   salutation:'', full_name:'', father_spouse_name:'',
   date_of_birth:'', age:'', gender:'', marital_status:'',
@@ -111,6 +112,11 @@ function Stepper({ step }) {
 // ── STEP 1 ────────────────────────────────────────────────────────────────────
 function Step1({form,set,errors}) {
   const [busy,setBusy] = useState(false);
+  const today = todayISO();
+  const rankOptions = form.max_allowed_rank_id
+    ? RANK_OPTIONS.filter(r => r.id >= 1 && r.id <= form.max_allowed_rank_id)
+    : [];
+
   const verify = async () => {
     const id = form.promoter_adviser_id.trim();
     if (!id) { toast.error('Enter Promoter Adviser ID'); return; }
@@ -119,50 +125,37 @@ function Step1({form,set,errors}) {
       const r = await axios.post(`${API}/api/registration/check-adviser`,{adviser_code:id},{headers:auth()});
       if (r.data.success) {
         const a = r.data.data;
-        const allowedId = a.allowed_rank_id;
-        const allowedLabel = a.allowed_rank_display || (allowedId ? rankLabel(allowedId) : '');
-        if (a.allowed_rank_error) {
-          toast.error(a.allowed_rank_error);
-          set(p=>({...p,promoter_name:a.full_name||'',promoter_rank:a.rank_name||a.rank||'',promoter_rank_id:a.rank_id,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}));
+        const maxRank = a.max_allowed_rank_id ?? a.allowed_rank_id;
+        if (a.allowed_rank_error || !maxRank) {
+          toast.error(a.allowed_rank_error || 'Cannot assign rank under this promoter');
+          set(p=>({...p,promoter_name:a.full_name||'',promoter_rank:a.rank_name||a.rank||'',promoter_rank_id:a.rank_id,max_allowed_rank_id:null,rank_id:null,rank:''}));
           return;
         }
         set(p=>({
           ...p,
+          registration_date: today,
           promoter_name:a.full_name||a.name||'',
           promoter_rank:a.rank_name||a.rank||'',
           promoter_rank_id:a.rank_id||a.promoter_rank_id,
-          allowed_rank_id:allowedId,
-          allowed_rank_label:allowedLabel,
-          rank_id:allowedId,
-          rank:allowedLabel,
+          max_allowed_rank_id:maxRank,
+          rank_id:null,
+          rank:'',
         }));
-        toast.success(`Verified: ${a.full_name||a.name} — assign rank ${allowedLabel}`);
+        toast.success(`Verified: ${a.full_name||a.name} — select rank 1 to ${maxRank}`);
       }
     } catch(e) {
       toast.error(e.response?.data?.message||'Adviser not found');
-      set(p=>({...p,promoter_name:'',promoter_rank:'',promoter_rank_id:null,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}));
+      set(p=>({...p,promoter_name:'',promoter_rank:'',promoter_rank_id:null,max_allowed_rank_id:null,rank_id:null,rank:''}));
     } finally { setBusy(false); }
   };
 
   return (
     <div className="af-step">
       <h3 className="af-step-h">Step 1 — Promoter Adviser Verification</h3>
-      <div className="af-g2">
-        <F label="Registration Date" req>
-          <Inp type="date" value={form.registration_date} onChange={e=>set(p=>({...p,registration_date:e.target.value}))}/>
-        </F>
-        <F label="Select Rank" req err={errors.rank} hint={form.allowed_rank_label ? `Only ${form.allowed_rank_label} allowed (promoter rank − 1)` : 'Verify promoter first'}>
-          <select className="af-input af-sel" value={form.rank_id||''} disabled={!form.allowed_rank_id}
-            onChange={e=>{const id=parseInt(e.target.value,10);set(p=>({...p,rank_id:id,rank:rankLabel(id)}));}}>
-            <option value="">{form.allowed_rank_id ? form.allowed_rank_label : 'Verify promoter first'}</option>
-            {form.allowed_rank_id && <option value={form.allowed_rank_id}>{form.allowed_rank_label}</option>}
-          </select>
-        </F>
-      </div>
       <F label="Promoter Adviser ID" req err={errors.promoter_adviser_id}>
         <div className="af-row-btn">
           <input className="af-input" value={form.promoter_adviser_id}
-            onChange={e=>set(p=>({...p,promoter_adviser_id:e.target.value,promoter_name:'',promoter_rank:'',promoter_rank_id:null,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}))}
+            onChange={e=>set(p=>({...p,promoter_adviser_id:e.target.value,promoter_name:'',promoter_rank:'',promoter_rank_id:null,max_allowed_rank_id:null,rank_id:null,rank:''}))}
             onKeyDown={e=>e.key==='Enter'&&verify()} placeholder="Enter Promoter Adviser ID"/>
           <button className="af-btn-verify" onClick={verify} disabled={busy}>{busy?'Verifying…':'Verify →'}</button>
         </div>
@@ -172,10 +165,26 @@ function Step1({form,set,errors}) {
           <div className="af-vtick">✓</div>
           <div>
             <div className="af-vname">{form.promoter_name}</div>
-            <div className="af-vrank">Rank: {form.promoter_rank} {form.allowed_rank_label && `(→ assign ${form.allowed_rank_label})`}</div>
+            <div className="af-vrank">
+              Rank: {form.promoter_rank}
+              {form.max_allowed_rank_id ? ` (assign new adviser rank 1 to ${form.max_allowed_rank_id})` : ''}
+            </div>
           </div>
         </div>
       )}
+      <div className="af-g2">
+        <F label="Registration Date" req hint="Fixed to today">
+          <Inp type="date" value={today} disabled readOnly/>
+        </F>
+        <F label="New Adviser Rank" req err={errors.rank}
+          hint={form.max_allowed_rank_id ? `Select rank 1 to ${form.max_allowed_rank_id}` : 'Verify promoter first'}>
+          <select className="af-input af-sel" value={form.rank_id||''} disabled={!form.max_allowed_rank_id}
+            onChange={e=>{const id=parseInt(e.target.value,10);set(p=>({...p,rank_id:id,rank:rankLabel(id),registration_date:today}));}}>
+            <option value="">{form.max_allowed_rank_id ? 'Select rank' : 'Verify promoter first'}</option>
+            {rankOptions.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+          </select>
+        </F>
+      </div>
       <div className="af-g2">
         <F label="Adviser Fee (₹)" req>
           <Inp type="number" value={form.member_fees} onChange={e=>set(p=>({...p,member_fees:e.target.value}))} placeholder="500"/>
@@ -360,7 +369,7 @@ function Step5({form,set}) {
         <RS title="Registration">
           <RR l="Promoter ID"   v={form.promoter_adviser_id}/>
           <RR l="Promoter Name" v={form.promoter_name}/>
-          <RR l="Rank"          v={form.rank||form.allowed_rank_label}/>
+          <RR l="Rank"          v={form.rank||rankLabel(form.rank_id)}/>
           <RR l="Fees & Mode"   v={`₹${form.member_fees} · ${form.payment_mode}`}/>
         </RS>
         <RS title="Personal">
@@ -400,8 +409,10 @@ const validators = {
     const e = {};
     if (!f.promoter_adviser_id.trim()) e.promoter_adviser_id = 'Enter Promoter ID';
     if (!f.promoter_name)              e.promoter_adviser_id = 'Please verify the Promoter ID first';
-    if (!f.rank_id || !f.allowed_rank_id) e.rank = 'Verify promoter to get allowed rank';
-    else if (f.rank_id !== f.allowed_rank_id) e.rank = `Only rank ${f.allowed_rank_label} is allowed`;
+    if (!f.rank_id)                    e.rank = 'Select new adviser rank';
+    else if (f.max_allowed_rank_id && (f.rank_id < 1 || f.rank_id > f.max_allowed_rank_id)) {
+      e.rank = `Rank must be between 1 and ${f.max_allowed_rank_id}`;
+    }
     return e;
   },
   2: f => {
@@ -465,10 +476,11 @@ function NewAdviserForm({ onSuccess, onCancel }) {
     try {
       const payload = {
         ...form,
+        registration_date: todayISO(),
         rank_id: form.rank_id,
         parent_adviser_code: form.promoter_adviser_id,
         father_name: form.father_spouse_name,
-        date_of_joining: form.registration_date,
+        date_of_joining: todayISO(),
         ...(form.same_as_corr ? {
           perm_address: form.corr_address,
           perm_city: form.corr_city,
