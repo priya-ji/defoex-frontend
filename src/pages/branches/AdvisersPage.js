@@ -30,12 +30,13 @@ const RANK_OPTIONS = [
 ];
 const rankLabel = id => RANK_OPTIONS.find(r => r.id === id)?.label || `${id}`;
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const ADVISER_FEE = 500;
 
 const blank = () => ({
   promoter_adviser_id:'', promoter_name:'', promoter_rank:'', promoter_rank_id:null,
   max_allowed_rank_id:null,
   registration_date: todayISO(),
-  rank_id:null, rank:'', member_fees:'500', payment_mode:'Cash',
+  rank_id:null, rank:'', member_fees:String(ADVISER_FEE), payment_mode:'Cash',
   salutation:'', full_name:'', father_spouse_name:'',
   date_of_birth:'', age:'', gender:'', marital_status:'',
   nationality:'Indian', mobile:'', phone_office:'', email:'',
@@ -75,9 +76,9 @@ const F = ({label,req,err,hint,children}) => (
     {hint&&!err&&<span className="af-hint">{hint}</span>}
   </div>
 );
-const Inp = ({value,onChange,placeholder,type='text',maxLength,disabled,cls=''}) => (
+const Inp = ({value,onChange,placeholder,type='text',maxLength,disabled,readOnly,cls='',...rest}) => (
   <input className={`af-input ${cls}`} type={type} value={value} onChange={onChange}
-    placeholder={placeholder} maxLength={maxLength} disabled={disabled}/>
+    placeholder={placeholder} maxLength={maxLength} disabled={disabled} readOnly={readOnly} {...rest}/>
 );
 const Sel = ({value,onChange,opts,ph}) => (
   <select className="af-input af-sel" value={value} onChange={onChange}>
@@ -186,8 +187,8 @@ function Step1({form,set,errors}) {
         </F>
       </div>
       <div className="af-g2">
-        <F label="Adviser Fee (₹)" req>
-          <Inp type="number" value={form.member_fees} onChange={e=>set(p=>({...p,member_fees:e.target.value}))} placeholder="500"/>
+        <F label="Adviser Fee (₹)" req hint="Fixed registration fee">
+          <Inp type="number" value={ADVISER_FEE} readOnly disabled/>
         </F>
         <F label="Payment Mode" req>
           <Sel value={form.payment_mode} onChange={e=>set(p=>({...p,payment_mode:e.target.value}))} opts={PAY_MODES}/>
@@ -370,7 +371,7 @@ function Step5({form,set}) {
           <RR l="Promoter ID"   v={form.promoter_adviser_id}/>
           <RR l="Promoter Name" v={form.promoter_name}/>
           <RR l="Rank"          v={form.rank||rankLabel(form.rank_id)}/>
-          <RR l="Fees & Mode"   v={`₹${form.member_fees} · ${form.payment_mode}`}/>
+          <RR l="Fees & Mode"   v={`₹${ADVISER_FEE} · ${form.payment_mode}`}/>
         </RS>
         <RS title="Personal">
           <RR l="Name"          v={`${form.salutation} ${form.full_name}`.trim()}/>
@@ -477,6 +478,7 @@ function NewAdviserForm({ onSuccess, onCancel }) {
       const payload = {
         ...form,
         registration_date: todayISO(),
+        member_fees: ADVISER_FEE,
         rank_id: form.rank_id,
         parent_adviser_code: form.promoter_adviser_id,
         father_name: form.father_spouse_name,
