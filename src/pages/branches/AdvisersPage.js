@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 import './AdvisersPage.css';
 
 const API = process.env.REACT_APP_API_URL || '';
@@ -18,23 +19,22 @@ const NATIONALITIES = ['Indian','Other'];
 const RELATIONSHIPS = ['Mother','Father','Brother','Sister','Spouse','Son','Daughter','Grandfather','Grandmother','Uncle','Aunt','Friend','Other'];
 const OCCUPATIONS   = ['Salaried','Self-Employed','Business','Professional','Homemaker','Student','Retired','Farmer','Other'];
 const PAY_MODES     = ['Cash','UPI','NEFT','Cheque','DD'];
-const RANKS         = ['1. SR','2. BR','3. ABR','4. SBR','5. RBR','6. DBR','7. CBR','8. SCBR','9. NSD','10. SSD','11. SD','12. RSD','13. DSD','14. CSD','15. PSD','16. House 1','17. House 2'];
-const STATES        = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli','Daman & Diu','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry'];
-
-const STEPS = [{num:1,label:'Promoter Verify'},{num:2,label:'Personal Info'},{num:3,label:'Address & KYC'},{num:4,label:'Nominee & Bank'},{num:5,label:'Income & Review'}];
-
-const calcAge = dob => {
-  if (!dob) return '';
-  const t = new Date(), b = new Date(dob);
-  let a = t.getFullYear() - b.getFullYear();
-  if (t.getMonth() < b.getMonth() || (t.getMonth()===b.getMonth() && t.getDate()<b.getDate())) a--;
-  return a > 0 ? String(a) : '';
-};
+const RANK_OPTIONS = [
+  { id: 1, label: '1. SR' }, { id: 2, label: '2. SO' }, { id: 3, label: '3. SD' },
+  { id: 4, label: '4. SI' }, { id: 5, label: '5. DO' }, { id: 6, label: '6. RO' },
+  { id: 7, label: '7. ZO' }, { id: 8, label: '8. EM' }, { id: 9, label: '9. EM I' },
+  { id: 10, label: '10. EM II' }, { id: 11, label: '11. EM R' }, { id: 12, label: '12. EM C' },
+  { id: 13, label: '13. House 1' }, { id: 14, label: '14. House 2' }, { id: 15, label: '15. House 3' },
+  { id: 16, label: '16. House 4' }, { id: 17, label: '17. House 5' }, { id: 18, label: '18. House 6' },
+  { id: 19, label: '19. House 7' }, { id: 20, label: '20. House 8' },
+];
+const rankLabel = id => RANK_OPTIONS.find(r => r.id === id)?.label || `${id}`;
 
 const blank = () => ({
-  promoter_adviser_id:'', promoter_name:'', promoter_rank:'',
+  promoter_adviser_id:'', promoter_name:'', promoter_rank:'', promoter_rank_id:null,
+  allowed_rank_id:null, allowed_rank_label:'',
   registration_date: new Date().toISOString().slice(0,10),
-  rank:'1. SR', member_fees:'650', payment_mode:'Cash',
+  rank_id:null, rank:'', member_fees:'500', payment_mode:'Cash',
   salutation:'', full_name:'', father_spouse_name:'',
   date_of_birth:'', age:'', gender:'', marital_status:'',
   nationality:'Indian', mobile:'', phone_office:'', email:'',
@@ -48,6 +48,22 @@ const blank = () => ({
   bank_name:'', account_number:'', ifsc_code:'', bank_branch_name:'', upi_id:'',
   occupation:'', professional_details:'', annual_income:'', family_income:'',
 });
+
+const STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli','Daman & Diu','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry'];
+
+const STEPS = [{num:1,label:'Promoter Verify'},{num:2,label:'Personal Info'},{num:3,label:'Address & KYC'},{num:4,label:'Nominee & Bank'},{num:5,label:'Income & Review'}];
+
+const calcAge = dob => {
+  if (!dob) return '';
+  const t = new Date(), b = new Date(dob);
+  let a = t.getFullYear() - b.getFullYear();
+  if (t.getMonth() < b.getMonth() || (t.getMonth()===b.getMonth() && t.getDate()<b.getDate())) a--;
+  return a > 0 ? String(a) : '';
+};
+
+const statusClass = s => ({
+  Active:'active', 'Not Active':'inactive', Pending:'pending', Blacklisted:'blacklisted',
+}[s] || 'pending');
 
 // ── Tiny UI ───────────────────────────────────────────────────────────────────
 const F = ({label,req,err,hint,children}) => (
@@ -103,12 +119,28 @@ function Step1({form,set,errors}) {
       const r = await axios.post(`${API}/api/registration/check-adviser`,{adviser_code:id},{headers:auth()});
       if (r.data.success) {
         const a = r.data.data;
-        set(p=>({...p,promoter_name:a.full_name||a.name||'',promoter_rank:a.rank_name||a.rank||''}));
-        toast.success(`Verified: ${a.full_name||a.name}`);
+        const allowedId = a.allowed_rank_id;
+        const allowedLabel = a.allowed_rank_display || (allowedId ? rankLabel(allowedId) : '');
+        if (a.allowed_rank_error) {
+          toast.error(a.allowed_rank_error);
+          set(p=>({...p,promoter_name:a.full_name||'',promoter_rank:a.rank_name||a.rank||'',promoter_rank_id:a.rank_id,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}));
+          return;
+        }
+        set(p=>({
+          ...p,
+          promoter_name:a.full_name||a.name||'',
+          promoter_rank:a.rank_name||a.rank||'',
+          promoter_rank_id:a.rank_id||a.promoter_rank_id,
+          allowed_rank_id:allowedId,
+          allowed_rank_label:allowedLabel,
+          rank_id:allowedId,
+          rank:allowedLabel,
+        }));
+        toast.success(`Verified: ${a.full_name||a.name} — assign rank ${allowedLabel}`);
       }
     } catch(e) {
       toast.error(e.response?.data?.message||'Adviser not found');
-      set(p=>({...p,promoter_name:'',promoter_rank:''}));
+      set(p=>({...p,promoter_name:'',promoter_rank:'',promoter_rank_id:null,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}));
     } finally { setBusy(false); }
   };
 
@@ -119,34 +151,41 @@ function Step1({form,set,errors}) {
         <F label="Registration Date" req>
           <Inp type="date" value={form.registration_date} onChange={e=>set(p=>({...p,registration_date:e.target.value}))}/>
         </F>
-        <F label="Select Rank" req err={errors.rank}>
-          <Sel value={form.rank} onChange={e=>set(p=>({...p,rank:e.target.value}))} opts={RANKS} ph="Select Rank"/>
+        <F label="Select Rank" req err={errors.rank} hint={form.allowed_rank_label ? `Only ${form.allowed_rank_label} allowed (promoter rank − 1)` : 'Verify promoter first'}>
+          <select className="af-input af-sel" value={form.rank_id||''} disabled={!form.allowed_rank_id}
+            onChange={e=>{const id=parseInt(e.target.value,10);set(p=>({...p,rank_id:id,rank:rankLabel(id)}));}}>
+            <option value="">{form.allowed_rank_id ? form.allowed_rank_label : 'Verify promoter first'}</option>
+            {form.allowed_rank_id && <option value={form.allowed_rank_id}>{form.allowed_rank_label}</option>}
+          </select>
         </F>
       </div>
       <F label="Promoter Adviser ID" req err={errors.promoter_adviser_id}>
         <div className="af-row-btn">
           <input className="af-input" value={form.promoter_adviser_id}
-            onChange={e=>set(p=>({...p,promoter_adviser_id:e.target.value,promoter_name:'',promoter_rank:''}))}
-            onKeyDown={e=>e.key==='Enter'&&verify()} placeholder="e.g. DEFAD202601"/>
+            onChange={e=>set(p=>({...p,promoter_adviser_id:e.target.value,promoter_name:'',promoter_rank:'',promoter_rank_id:null,allowed_rank_id:null,allowed_rank_label:'',rank_id:null,rank:''}))}
+            onKeyDown={e=>e.key==='Enter'&&verify()} placeholder="Enter Promoter Adviser ID"/>
           <button className="af-btn-verify" onClick={verify} disabled={busy}>{busy?'Verifying…':'Verify →'}</button>
         </div>
       </F>
       {form.promoter_name && (
         <div className="af-verified">
           <div className="af-vtick">✓</div>
-          <div><div className="af-vname">{form.promoter_name}</div><div className="af-vrank">{form.promoter_rank}</div></div>
+          <div>
+            <div className="af-vname">{form.promoter_name}</div>
+            <div className="af-vrank">Rank: {form.promoter_rank} {form.allowed_rank_label && `(→ assign ${form.allowed_rank_label})`}</div>
+          </div>
         </div>
       )}
       <div className="af-g2">
-        <F label="Member Fees (₹)" req>
-          <Inp type="number" value={form.member_fees} onChange={e=>set(p=>({...p,member_fees:e.target.value}))} placeholder="650"/>
+        <F label="Adviser Fee (₹)" req>
+          <Inp type="number" value={form.member_fees} onChange={e=>set(p=>({...p,member_fees:e.target.value}))} placeholder="500"/>
         </F>
         <F label="Payment Mode" req>
           <Sel value={form.payment_mode} onChange={e=>set(p=>({...p,payment_mode:e.target.value}))} opts={PAY_MODES}/>
         </F>
       </div>
       <div className="af-fee-note">
-        ⚠️ Note: Adviser create fee is ₹650, which is deducted from branch panel limit (if adviser successfully created).
+        ⚠️ Note: Adviser create fee is ₹500, deducted from branch panel limit when adviser is successfully created.
         After creating → go to <strong>Approved Adviser</strong> tab to approve and generate login credentials.
       </div>
     </div>
@@ -265,7 +304,7 @@ function Step4({form,set,errors}) {
 
       <label className="af-checkbox">
         <input type="checkbox" checked={form.nominee_same_as_member} onChange={toggleNom}/>
-        <span>Nominee address same as Correspondence address</span>
+        <span>Nominee address same as guardian (correspondence) address</span>
         <span className="af-cb-note">(copies address, city, state & pincode)</span>
       </label>
 
@@ -321,7 +360,7 @@ function Step5({form,set}) {
         <RS title="Registration">
           <RR l="Promoter ID"   v={form.promoter_adviser_id}/>
           <RR l="Promoter Name" v={form.promoter_name}/>
-          <RR l="Rank"          v={form.rank}/>
+          <RR l="Rank"          v={form.rank||form.allowed_rank_label}/>
           <RR l="Fees & Mode"   v={`₹${form.member_fees} · ${form.payment_mode}`}/>
         </RS>
         <RS title="Personal">
@@ -361,7 +400,8 @@ const validators = {
     const e = {};
     if (!f.promoter_adviser_id.trim()) e.promoter_adviser_id = 'Enter Promoter ID';
     if (!f.promoter_name)              e.promoter_adviser_id = 'Please verify the Promoter ID first';
-    if (!f.rank)                       e.rank = 'Select a rank';
+    if (!f.rank_id || !f.allowed_rank_id) e.rank = 'Verify promoter to get allowed rank';
+    else if (f.rank_id !== f.allowed_rank_id) e.rank = `Only rank ${f.allowed_rank_label} is allowed`;
     return e;
   },
   2: f => {
@@ -423,15 +463,24 @@ function NewAdviserForm({ onSuccess, onCancel }) {
   const submit = async () => {
     setLoading(true);
     try {
-      const rankId = parseInt(String(form.rank).split('.')[0], 10) || 1;
       const payload = {
-        full_name:           form.full_name,
-        mobile:              form.mobile,
-        email:               form.email || undefined,
-        rank_id:             rankId,
+        ...form,
+        rank_id: form.rank_id,
         parent_adviser_code: form.promoter_adviser_id,
-        member_fees:         Number(form.member_fees) || 650,
-        father_name:         form.father_spouse_name || undefined,
+        father_name: form.father_spouse_name,
+        date_of_joining: form.registration_date,
+        ...(form.same_as_corr ? {
+          perm_address: form.corr_address,
+          perm_city: form.corr_city,
+          perm_state: form.corr_state,
+          perm_pincode: form.corr_pincode,
+        } : {}),
+        ...(form.nominee_same_as_member ? {
+          nominee_address: form.corr_address,
+          nominee_city: form.corr_city,
+          nominee_state: form.corr_state,
+          nominee_pincode: form.corr_pincode,
+        } : {}),
       };
       const r = await axios.post(`${API}/api/advisers/`, payload, { headers: auth() });
       if (r.data.success) {
@@ -477,16 +526,111 @@ function NewAdviserForm({ onSuccess, onCancel }) {
   );
 }
 
+// ── Adviser Detail Modal ───────────────────────────────────────────────────────
+function AdviserDetailModal({ adviserId, onClose, isAdmin, onBlacklist }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!adviserId) return;
+    setLoading(true);
+    axios.get(`${API}/api/advisers/detail/${adviserId}`, { headers: auth() })
+      .then(r => setData(r.data.data))
+      .catch(() => toast.error('Could not load adviser details'))
+      .finally(() => setLoading(false));
+  }, [adviserId]);
+
+  if (!adviserId) return null;
+  const reg = data?.registration || {};
+
+  return (
+    <div className="af-modal-overlay" onClick={onClose}>
+      <div className="af-modal af-modal-lg" onClick={e => e.stopPropagation()}>
+        <div className="af-modal-title">Adviser Details — {data?.adviser_code || '…'}</div>
+        {loading ? <div className="af-state">Loading…</div> : !data ? <div className="af-state">Not found</div> : (
+          <>
+            <div className="af-detail-grid">
+              <RS title="Basic">
+                <RR l="Adviser ID" v={data.adviser_code}/>
+                <RR l="Name" v={data.full_name}/>
+                <RR l="Father/Spouse" v={data.father_spouse_name}/>
+                <RR l="Rank" v={data.rank_display || `${data.rank_id}. ${data.rank_name}`}/>
+                <RR l="Mobile" v={data.mobile}/>
+                <RR l="Status" v={data.status}/>
+                <RR l="Date of Joining" v={data.date_of_joining?.slice?.(0,10) || data.date_of_joining}/>
+                <RR l="Promoter" v={`${data.promoter_adviser_name||'—'} (${data.promoter_adviser_id||'—'})`}/>
+              </RS>
+              <RS title="Personal (Registration)">
+                <RR l="DOB / Age" v={reg.date_of_birth ? `${reg.date_of_birth} (${reg.age} yrs)` : '—'}/>
+                <RR l="Gender" v={reg.gender}/>
+                <RR l="Marital Status" v={reg.marital_status}/>
+                <RR l="Aadhar" v={reg.aadhar_number}/>
+                <RR l="PAN" v={reg.pan_number}/>
+              </RS>
+              <RS title="Address">
+                <RR l="Correspondence" v={[reg.corr_address, reg.corr_city, reg.corr_state, reg.corr_pincode].filter(Boolean).join(', ')}/>
+                <RR l="Permanent" v={reg.same_as_corr ? '(Same as correspondence)' : [reg.perm_address, reg.perm_city, reg.perm_state, reg.perm_pincode].filter(Boolean).join(', ')}/>
+              </RS>
+              <RS title="Nominee">
+                <RR l="Name" v={reg.nominee_name}/>
+                <RR l="Age / Relation" v={[reg.nominee_age, reg.nominee_relationship].filter(Boolean).join(' · ')}/>
+              </RS>
+              <RS title="Bank">
+                <RR l="Bank" v={reg.bank_name}/>
+                <RR l="Account / IFSC" v={[reg.account_number, reg.ifsc_code].filter(Boolean).join(' · ')}/>
+                <RR l="UPI" v={reg.upi_id}/>
+              </RS>
+              <RS title="Income">
+                <RR l="Occupation" v={reg.occupation}/>
+                <RR l="Annual / Family" v={[reg.annual_income, reg.family_income].filter(Boolean).map(n=>`₹${Number(n).toLocaleString('en-IN')}`).join(' / ')}/>
+              </RS>
+            </div>
+
+            <div className="af-section-lbl">Investors under this Adviser ({data.investors?.length || 0})</div>
+            {(data.investors?.length > 0) ? (
+              <div className="af-table-wrap">
+                <table className="af-table af-table-sm">
+                  <thead><tr><th>#</th><th>Investor ID</th><th>Name</th><th>Mobile</th></tr></thead>
+                  <tbody>
+                    {data.investors.map((m,i) => (
+                      <tr key={m.investor_id}>
+                        <td>{i+1}</td>
+                        <td className="af-mono">{m.investor_id}</td>
+                        <td>{m.full_name}</td>
+                        <td>{m.mobile}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="af-state af-state-sm">No investors yet — status: Not Active</div>
+            )}
+
+            <div className="af-modal-actions">
+              {isAdmin && !data.is_blacklisted && data.is_active && (
+                <button className="af-btn-reject" onClick={() => onBlacklist(data.id)}>Blacklist</button>
+              )}
+              <button className="af-btn-submit" onClick={onClose}>Close</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── List Advisers Tab ─────────────────────────────────────────────────────────
-function ListAdvisers({ onApproveTab }) {
+function ListAdvisers({ isAdmin }) {
   const [advisers, setAdvisers] = useState([]);
   const [search,   setSearch]   = useState('');
   const [loading,  setLoading]  = useState(true);
+  const [detailId, setDetailId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await axios.get(`${API}/api/advisers/`, { headers: auth() });
+      const r = await axios.get(`${API}/api/advisers/?include_blacklisted=1`, { headers: auth() });
       setAdvisers(r.data.data?.items || r.data.data || []);
     } catch { toast.error('Failed to load advisers'); }
     finally { setLoading(false); }
@@ -494,16 +638,27 @@ function ListAdvisers({ onApproveTab }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const blacklist = async (id) => {
+    if (!window.confirm('Blacklist this adviser? They will not be able to create investors.')) return;
+    try {
+      await axios.post(`${API}/api/advisers/${id}/blacklist`, {}, { headers: auth() });
+      toast.success('Adviser blacklisted');
+      setDetailId(null);
+      load();
+    } catch(e) { toast.error(e.response?.data?.message || 'Failed'); }
+  };
+
   const filtered = advisers.filter(a =>
     !search ||
     (a.adviser_code||'').toLowerCase().includes(search.toLowerCase()) ||
-    (a.full_name||'').toLowerCase().includes(search.toLowerCase())
+    (a.full_name||'').toLowerCase().includes(search.toLowerCase()) ||
+    (a.mobile||'').includes(search)
   );
 
   return (
     <div>
       <div className="af-list-top">
-        <input className="af-search" placeholder="Search by Adviser ID or Name…"
+        <input className="af-search" placeholder="Search by Adviser ID, Name or Mobile…"
           value={search} onChange={e=>setSearch(e.target.value)}/>
       </div>
       {loading ? <div className="af-state">Loading…</div> : filtered.length === 0 ? (
@@ -513,9 +668,9 @@ function ListAdvisers({ onApproveTab }) {
           <table className="af-table">
             <thead>
               <tr>
-                <th>#</th><th>Adviser ID</th><th>Name</th><th>Father Name</th>
-                <th>Mobile</th><th>Rank</th><th>Date of Joining</th>
-                <th>Promoter ID</th><th>Status</th>
+                <th>Sr.</th><th>Adviser ID</th><th>Rank</th><th>Name</th><th>Father Name</th>
+                <th>Mobile</th><th>Date of Joining</th><th>Promoter Name</th><th>Promoter ID</th>
+                <th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -523,16 +678,18 @@ function ListAdvisers({ onApproveTab }) {
                 <tr key={a.id}>
                   <td>{i+1}</td>
                   <td className="af-mono">{a.adviser_code}</td>
+                  <td>{a.rank_display || a.rank_name || '—'}</td>
                   <td>{a.full_name}</td>
-                  <td>{a.father_spouse_name||'—'}</td>
+                  <td>{a.father_spouse_name||a.father_name||'—'}</td>
                   <td>{a.mobile}</td>
-                  <td>{a.rank_name||a.rank||'—'}</td>
                   <td>{a.date_of_joining||a.created_at?.slice(0,10)||'—'}</td>
-                  <td className="af-mono">{a.promoter_adviser_id||a.adviser_code||'—'}</td>
+                  <td>{a.promoter_adviser_name||a.parent_adviser_name||'—'}</td>
+                  <td className="af-mono">{a.promoter_adviser_id||a.parent_adviser_code||'—'}</td>
                   <td>
-                    <span className={`af-badge ${a.is_active?'active':'pending'}`}>
-                      {a.is_active ? 'Active' : 'Pending'}
-                    </span>
+                    <span className={`af-badge ${statusClass(a.status)}`}>{a.status || (a.is_active ? 'Active' : 'Pending')}</span>
+                  </td>
+                  <td>
+                    <button className="af-btn-link" onClick={()=>setDetailId(a.id)}>More Details</button>
                   </td>
                 </tr>
               ))}
@@ -540,6 +697,7 @@ function ListAdvisers({ onApproveTab }) {
           </table>
         </div>
       )}
+      <AdviserDetailModal adviserId={detailId} onClose={()=>setDetailId(null)} isAdmin={isAdmin} onBlacklist={blacklist}/>
     </div>
   );
 }
@@ -574,12 +732,12 @@ function ApprovedAdvisers() {
   };
 
   const reject = async (id) => {
-    if (!window.confirm('Reject this adviser?')) return;
+    if (!window.confirm('Delete this pending adviser registration?')) return;
     try {
-      await axios.post(`${API}/api/advisers/${id}/approve`, { action:'reject' }, { headers: auth() });
-      toast.success('Adviser rejected');
+      await axios.post(`${API}/api/advisers/${id}/approve`, { action:'delete' }, { headers: auth() });
+      toast.success('Adviser registration deleted');
       load();
-    } catch(e) { toast.error('Failed to reject'); }
+    } catch(e) { toast.error(e.response?.data?.message || 'Failed to delete'); }
   };
 
   const pending = advisers.filter(a => !a.is_active && !a.is_blacklisted);
@@ -621,8 +779,8 @@ function ApprovedAdvisers() {
                   <td>{a.created_at?.slice(0,10)||'—'}</td>
                   <td>
                     <div className="af-action-pair">
-                      <button className="af-btn-approve" onClick={()=>approve(a.id)}>✓ Approve</button>
-                      <button className="af-btn-reject"  onClick={()=>reject(a.id)}>✗ Reject</button>
+                      <button className="af-btn-approve" onClick={()=>approve(a.id)}>✓ Approve Adviser</button>
+                      <button className="af-btn-reject"  onClick={()=>reject(a.id)}>✗ Delete Adviser</button>
                     </div>
                   </td>
                 </tr>
@@ -637,6 +795,8 @@ function ApprovedAdvisers() {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdvisersPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'superadmin';
   const [tab,     setTab]     = useState('list');
   const [pending, setPending] = useState(0);
 
@@ -674,7 +834,7 @@ export default function AdvisersPage() {
 
       {/* Content */}
       <div className="af-content">
-        {tab==='list'     && <ListAdvisers onApproveTab={()=>setTab('approved')}/>}
+        {tab==='list'     && <ListAdvisers isAdmin={isAdmin}/>}
         {tab==='new'      && <NewAdviserForm onSuccess={()=>setTab('approved')} onCancel={()=>setTab('list')}/>}
         {tab==='approved' && <ApprovedAdvisers/>}
       </div>

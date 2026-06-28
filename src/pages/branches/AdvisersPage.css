@@ -114,8 +114,20 @@
 
 /* Badges */
 .af-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-.af-badge.active  { background: #d1fae5; color: #065f46; }
-.af-badge.pending { background: #fef3c7; color: #92400e; }
+.af-badge.active      { background: #d1fae5; color: #065f46; }
+.af-badge.inactive    { background: #e2e8f0; color: #475569; }
+.af-badge.pending     { background: #fef3c7; color: #92400e; }
+.af-badge.blacklisted { background: #fee2e2; color: #991b1b; }
+
+.af-btn-link { background: none; border: none; color: #1d4ed8; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
+.af-btn-link:hover { color: #1e40af; }
+
+.af-modal-lg { max-width: 860px; width: 95%; max-height: 90vh; overflow-y: auto; }
+.af-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+@media(max-width:700px){.af-detail-grid{grid-template-columns:1fr;}}
+.af-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+.af-table-sm td, .af-table-sm th { padding: 7px 10px; font-size: 12px; }
+.af-state-sm { padding: 16px; font-size: 13px; }
 
 /* Action buttons */
 .af-action-pair { display: flex; gap: 6px; }
