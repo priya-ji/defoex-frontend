@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import './RegistrationForm.css';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API = process.env.REACT_APP_API_URL || '';
 const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
 
 const SALUTATIONS  = ['Mr','Mrs','Ms','Dr','Prof'];

@@ -145,6 +145,21 @@
   flex-direction: column;
   gap: 10px;
 }
+
+.member-card-blocked {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.member-card-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .member-card-row {
   display: flex;
   justify-content: space-between;

@@ -8,8 +8,8 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    username: process.env.NODE_ENV === 'development' ? 'superadmin' : '',
-    password: process.env.NODE_ENV === 'development' ? 'admin123' : '',
+    username: '',
+    password: '',
   });
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -31,15 +31,21 @@ export default function LoginPage() {
     try {
       const user = await login({
         username: form.username.trim(),
-        password: form.password,
+        password: form.password.trim(),
       });
       toast.success(`Welcome, ${user.full_name}!`);
       navigate('/dashboard');
     } catch (err) {
+      const status = err.response?.status;
       const msg = err.response?.data?.message;
-      const isNetwork = !err.response;
-      if (isNetwork) {
-        setError('Cannot connect to server. Make sure the backend is running on port 5001.');
+      if (!err.response) {
+        setError(
+          'Cannot reach the API server. Start the backend (python3 app.py in defoex-backend) and restart npm start.'
+        );
+      } else if (status === 404) {
+        setError(
+          'Login API not found (404). On the live server, run: git pull && bash deploy_live.sh'
+        );
       } else {
         setError(msg || 'Invalid username or password. Passwords are case-sensitive.');
       }
@@ -72,9 +78,9 @@ export default function LoginPage() {
         </div>
 
         <div className="login-credentials-hint">
-          <div className="hint-title">Default Login</div>
-          <div className="hint-row"><span>Username</span><code>superadmin</code></div>
-          <div className="hint-row"><span>Password</span><code>admin123</code></div>
+          <div className="hint-title">Default Logins</div>
+          <div className="hint-row"><span>Super Admin</span><code>superadmin / Defoex@2024</code></div>
+          <div className="hint-row"><span>Admin</span><code>Nitin / Admin@123</code></div>
         </div>
 
         <div className="login-quote">"DefOex : Together We Build, Together We Grow..."</div>

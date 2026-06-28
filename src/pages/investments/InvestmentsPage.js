@@ -5,19 +5,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../services/api';
 import './InvestmentsPage.css';
-
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const fmtINR = (n) =>
   n == null ? '—' : `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
-
-const authHeader = () => ({
-  Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-});
-
 const validateAmount = (val) => {
   const n = Number(val);
   if (!val || isNaN(n) || n <= 0) return 'Enter a valid amount';
@@ -40,6 +33,50 @@ const MIS_PLANS = {
 };
 
 const UPI_APPS = ['PhonePe', 'Paytm', 'GPay', 'BHIM', 'Other'];
+
+async function fetchMemberDetails(memberId, { setMemberInfo, setFetching }) {
+  if (!memberId.trim()) {
+    toast.error('Enter Investor ID, Adviser ID, or Login ID');
+    return;
+  }
+  setFetching(true);
+  setMemberInfo(null);
+  try {
+    const r = await api.get('/api/investment-plans/get-investor-details', {
+      params: { member_id: memberId.trim().toUpperCase() },
+    });
+    if (r.data.success) {
+      setMemberInfo(r.data.data);
+      if (r.data.data.can_create_plan === false) {
+        toast.error(r.data.message || 'Cannot create plan for this ID yet', { duration: 6000 });
+      } else {
+        toast.success(`Found: ${r.data.data.full_name}`);
+      }
+    }
+  } catch (e) {
+    const status = e.response?.status;
+    const msg = e.response?.data?.message;
+    if (status === 401) {
+      toast.error(msg || 'Session expired — please sign in again', { duration: 6000 });
+    } else {
+      toast.error(msg || 'Member not found or not approved', { duration: 6000 });
+    }
+  } finally {
+    setFetching(false);
+  }
+}
+
+function guardPlanCreation(memberInfo) {
+  if (!memberInfo) {
+    toast.error('Fetch member details first');
+    return false;
+  }
+  if (memberInfo.can_create_plan === false) {
+    toast.error('Register and approve this person as an investor before creating a plan');
+    return false;
+  }
+  return true;
+}
 
 // ── Shared: Payment Fields (inline, always visible) ─────────────────────────
 // When Cash is selected  → only Cash row is visible
@@ -133,8 +170,16 @@ function PaymentFields({ paymentMode, setPaymentMode, txnId, setTxnId, upiApp, s
 // ── Shared: Member Info Card ────────────────────────────────────────────────
 function MemberCard({ info }) {
   if (!info) return null;
+  const blocked = info.can_create_plan === false;
   return (
-    <div className="member-card">
+    <div className={`member-card ${blocked ? 'member-card-blocked' : ''}`}>
+      {blocked && (
+        <div className="member-card-warning">
+          {info.status === 'pending'
+            ? `Investor registration (${info.pending_investor_id || 'pending'}) must be approved before creating a plan.`
+            : 'This person is an adviser only — register and approve them as an investor first.'}
+        </div>
+      )}
       <div className="member-card-row">
         <span>Investor Name</span><strong>{info.full_name}</strong>
       </div>
@@ -188,18 +233,8 @@ function NewMISPlan() {
     };
   }, [amount, tenure]);
 
-  const getDetails = async () => {
-    if (!memberId.trim()) { toast.error('Enter Investor ID or Adviser ID'); return; }
-    setFetching(true); setMemberInfo(null);
-    try {
-      const r = await axios.get(
-        `${API}/investment-plan/get-investor-details/${memberId.trim().toUpperCase()}`,
-        { headers: authHeader() }
-      );
-      if (r.data.success) { setMemberInfo(r.data.data); toast.success(`Found: ${r.data.data.full_name}`); }
-    } catch (e) { toast.error(e.response?.data?.message || 'Member not found or not approved'); }
-    finally { setFetching(false); }
-  };
+  const getDetails = () =>
+    fetchMemberDetails(memberId, { setMemberInfo, setFetching });
 
   const validateUpi = () => {
     if (paymentMode !== 'UPI') return true;
@@ -212,7 +247,7 @@ function NewMISPlan() {
   };
 
   const handleSubmit = async () => {
-    if (!memberInfo) { toast.error('Fetch member details first'); return; }
+    if (!guardPlanCreation(memberInfo)) return;
     const ae = validateAmount(amount);
     if (ae) { setAmtErr(ae); return; }
     if (!validateUpi()) return;
@@ -226,7 +261,7 @@ function NewMISPlan() {
         payment_mode:   paymentMode,
         ...(paymentMode === 'UPI' ? { transaction_id: txnId.trim(), upi_app: upiApp.toLowerCase() } : {}),
       };
-      const r = await axios.post(`${API}/investment-plan/create-mis`, payload, { headers: authHeader() });
+      const r = await api.post('/api/investment-plans/create-mis', payload);
       if (r.data.success) {
         toast.success(r.data.message);
         setMemberId(''); setMemberInfo(null); setAmount(''); setTenure('3Y');
@@ -245,11 +280,11 @@ function NewMISPlan() {
 
         {/* Member lookup */}
         <div className="field-group">
-          <label className="field-label">Investor ID / Adviser ID</label>
+          <label className="field-label">Investor ID / Adviser ID / Login ID</label>
           <div className="input-btn-row">
             <input
               className="field-input"
-              placeholder="e.g. DFX-2026-000006"
+              placeholder="e.g. DFX-2026-000002 or DEFAD202605"
               value={memberId}
               onChange={(e) => setMemberId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && getDetails()}
@@ -344,18 +379,8 @@ function NewSISPlan() {
   const [fetching,    setFetching]    = useState(false);
   const [loading,     setLoading]     = useState(false);
 
-  const getDetails = async () => {
-    if (!memberId.trim()) { toast.error('Enter Investor ID or Adviser ID'); return; }
-    setFetching(true); setMemberInfo(null);
-    try {
-      const r = await axios.get(
-        `${API}/investment-plan/get-investor-details/${memberId.trim().toUpperCase()}`,
-        { headers: authHeader() }
-      );
-      if (r.data.success) { setMemberInfo(r.data.data); toast.success(`Found: ${r.data.data.full_name}`); }
-    } catch (e) { toast.error(e.response?.data?.message || 'Member not found or not approved'); }
-    finally { setFetching(false); }
-  };
+  const getDetails = () =>
+    fetchMemberDetails(memberId, { setMemberInfo, setFetching });
 
   const validateUpi = () => {
     if (paymentMode !== 'UPI') return true;
@@ -368,7 +393,7 @@ function NewSISPlan() {
   };
 
   const handleSubmit = async () => {
-    if (!memberInfo) { toast.error('Fetch member details first'); return; }
+    if (!guardPlanCreation(memberInfo)) return;
     const ae = validateAmount(amount);
     if (ae) { setAmtErr(ae); return; }
     if (!validateUpi()) return;
@@ -381,7 +406,7 @@ function NewSISPlan() {
         payment_mode: paymentMode,
         ...(paymentMode === 'UPI' ? { transaction_id: txnId.trim(), upi_app: upiApp.toLowerCase() } : {}),
       };
-      const r = await axios.post(`${API}/investment-plan/create-sis`, payload, { headers: authHeader() });
+      const r = await api.post('/api/investment-plans/create-sis', payload);
       if (r.data.success) {
         toast.success(r.data.message);
         setMemberId(''); setMemberInfo(null); setAmount('');
@@ -400,11 +425,11 @@ function NewSISPlan() {
         <div className="plan-badge">7.5 Years · Lump Sum · Amount Doubles</div>
 
         <div className="field-group">
-          <label className="field-label">Investor ID / Adviser ID</label>
+          <label className="field-label">Investor ID / Adviser ID / Login ID</label>
           <div className="input-btn-row">
             <input
               className="field-input"
-              placeholder="e.g. DFX-2026-000006"
+              placeholder="e.g. DFX-2026-000002 or DEFAD202605"
               value={memberId}
               onChange={(e) => setMemberId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && getDetails()}
@@ -480,7 +505,7 @@ function MISContribution() {
     if (!investmentId.trim()) { toast.error('Enter Investment ID or Investor ID'); return; }
     setFetching(true); setPlanInfo(null);
     try {
-      const r = await axios.get(`${API}/investment-plan/list?per_page=200`, { headers: authHeader() });
+      const r = await api.get('/api/investment-plans/list', { params: { per_page: 200 } });
       const search = investmentId.trim().toUpperCase();
       const found = (r.data.data || []).find(
         (inv) => String(inv.id) === search || (inv.investor_id || '').toUpperCase() === search
@@ -513,7 +538,7 @@ function MISContribution() {
         payment_mode:  paymentMode,
         ...(paymentMode === 'UPI' ? { transaction_id: txnId.trim(), upi_app: upiApp.toLowerCase() } : {}),
       };
-      const r = await axios.post(`${API}/investment-plan/mis-contribution`, payload, { headers: authHeader() });
+      const r = await api.post('/api/investment-plans/mis-contribution', payload);
       if (r.data.success) {
         toast.success(r.data.message);
         setPaymentMode('Cash'); setTxnId(''); setUpiApp(''); setUpiErrors({});
@@ -584,7 +609,7 @@ function ApproveInvestment() {
   const fetchPending = async () => {
     setLoading(true);
     try {
-      const r = await axios.get(`${API}/investment-plan/list?status=pending&per_page=100`, { headers: authHeader() });
+      const r = await api.get('/api/investment-plans/list', { params: { status: 'pending', per_page: 100 } });
       setInvestments(r.data.data || []);
     } catch { toast.error('Failed to load pending investments'); }
     finally { setLoading(false); }
@@ -594,7 +619,7 @@ function ApproveInvestment() {
 
   const handleAction = async (id, action) => {
     try {
-      const r = await axios.post(`${API}/investment-plan/approve-investment/${id}`, { action }, { headers: authHeader() });
+      const r = await api.post(`/api/investment-plans/approve-investment/${id}`, { action });
       if (r.data.success) { toast.success(r.data.message); fetchPending(); }
     } catch (e) { toast.error(e.response?.data?.message || `Failed to ${action}`); }
   };
@@ -674,10 +699,10 @@ function AllPlans() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const p = new URLSearchParams({ per_page: 100 });
-      if (planType) p.append('plan_type', planType);
-      if (status)   p.append('status', status);
-      const r = await axios.get(`${API}/investment-plan/list?${p}`, { headers: authHeader() });
+      const params = { per_page: 100 };
+      if (planType) params.plan_type = planType;
+      if (status)   params.status = status;
+      const r = await api.get('/api/investment-plans/list', { params });
       setInvestments(r.data.data || []);
     } catch { toast.error('Failed to load investments'); }
     finally { setLoading(false); }

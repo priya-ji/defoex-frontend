@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://3.110.209.154',
+  // Empty baseURL in dev → requests go through setupProxy.js (same-origin, no CORS)
+  baseURL: process.env.REACT_APP_API_URL || '',
   headers: { 'Content-Type': 'application/json' }
 });
 

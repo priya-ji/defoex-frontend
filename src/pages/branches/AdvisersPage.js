@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import './AdvisersPage.css';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API = process.env.REACT_APP_API_URL || '';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}` });
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -423,55 +423,22 @@ function NewAdviserForm({ onSuccess, onCancel }) {
   const submit = async () => {
     setLoading(true);
     try {
+      const rankId = parseInt(String(form.rank).split('.')[0], 10) || 1;
       const payload = {
-        adviser_code:        form.promoter_adviser_id,
-        member_type:         'Adviser',
-        rank:                form.rank,
-        registration_date:   form.registration_date,
-        member_fees:         Number(form.member_fees),
-        payment_mode:        form.payment_mode,
-        salutation:          form.salutation,
         full_name:           form.full_name,
-        father_spouse_name:  form.father_spouse_name,
-        date_of_birth:       form.date_of_birth,
-        age:                 form.age ? Number(form.age) : null,
-        gender:              form.gender,
-        marital_status:      form.marital_status,
-        nationality:         form.nationality,
         mobile:              form.mobile,
-        phone_office:        form.phone_office,
-        email:               form.email,
-        aadhar_number:       form.aadhar_number,
-        pan_number:          form.pan_number,
-        corr_address:        form.corr_address,
-        corr_city:           form.corr_city,
-        corr_state:          form.corr_state,
-        corr_pincode:        form.corr_pincode,
-        same_as_corr:        form.same_as_corr,
-        perm_address:        form.perm_address,
-        perm_city:           form.perm_city,
-        perm_state:          form.perm_state,
-        perm_pincode:        form.perm_pincode,
-        nominee_name:        form.nominee_name,
-        nominee_age:         form.nominee_age ? Number(form.nominee_age) : null,
-        nominee_relationship:form.nominee_relationship,
-        nominee_address:     form.nominee_address,
-        nominee_city:        form.nominee_city,
-        nominee_state:       form.nominee_state,
-        nominee_pincode:     form.nominee_pincode,
-        bank_name:           form.bank_name,
-        account_number:      form.account_number,
-        ifsc_code:           form.ifsc_code,
-        bank_branch_name:    form.bank_branch_name,
-        upi_id:              form.upi_id,
-        occupation:          form.occupation,
-        professional_details:form.professional_details,
-        annual_income:       form.annual_income || null,
-        family_income:       form.family_income || null,
+        email:               form.email || undefined,
+        rank_id:             rankId,
+        parent_adviser_code: form.promoter_adviser_id,
+        member_fees:         Number(form.member_fees) || 650,
+        father_name:         form.father_spouse_name || undefined,
       };
-      const r = await axios.post(`${API}/api/registration/new`, payload, { headers: auth() });
+      const r = await axios.post(`${API}/api/advisers/`, payload, { headers: auth() });
       if (r.data.success) {
-        toast.success(`Adviser registered! Pending approval.`);
+        const code = r.data.data?.adviser_code;
+        toast.success(code
+          ? `Adviser registered (${code})! Go to Approved Adviser tab to approve.`
+          : 'Adviser registered! Pending approval.');
         setStep(1); setForm(blank());
         if (onSuccess) onSuccess();
       }
