@@ -137,7 +137,7 @@ export default function CommissionsPage() {
     if (filterStatus) params.status = filterStatus;
     commissionService.list(params)
       .then(r => setData(r.data.data || { items: [], total: 0, pages: 1 }))
-      .catch(() => toast.error('Failed to load commissions'))
+      .catch(() => toast.error('Failed to load benefits'))
       .finally(() => setLoading(false));
   }, [page, filterStatus]);
 
@@ -162,8 +162,8 @@ export default function CommissionsPage() {
     <div className="page-enter">
       <div className="page-header">
         <div>
-          <h1>Commissions</h1>
-          <p className="text-muted">{isBM ? 'Your branch adviser commissions' : 'All adviser commissions across branches'}</p>
+          <h1>Benefits</h1>
+          <p className="text-muted">{isBM ? 'Your branch adviser benefits' : 'All adviser benefits across branches'}</p>
         </div>
         <div className="comm-tabs">
           <button type="button" className={`btn ${view === 'list' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setView('list')}>Records</button>
@@ -180,7 +180,7 @@ export default function CommissionsPage() {
               <strong>{summaryLoading ? '…' : summary.total}</strong>
             </div>
             <div className="comm-hero-stat">
-              <span>Total Commission</span>
+              <span>Total Benefits</span>
               <strong className="green">{summaryLoading ? '…' : fmt(summary.totalCommission)}</strong>
             </div>
             <div className="comm-hero-stat">
@@ -223,7 +223,7 @@ export default function CommissionsPage() {
             <button type="button" className="btn btn-outline btn-sm" onClick={refresh} style={{ marginLeft: 'auto' }}>↻ Refresh</button>
           </div>
 
-          <Panel title={`Commission Records (${summary.total})`}>
+          <Panel title={`Benefits Records (${summary.total})`}>
             {loading ? <Loading /> : (
               <>
                 <div className="comm-table-wrap">
@@ -237,7 +237,7 @@ export default function CommissionsPage() {
                         <th>Tenure</th>
                         <th>Base</th>
                         <th>Rate</th>
-                        <th>Commission</th>
+                        <th>Benefits</th>
                         <th>Status</th>
                         <th>Date</th>
                       </tr>
@@ -267,7 +267,7 @@ export default function CommissionsPage() {
                       ))}
                       {!filteredItems.length && (
                         <tr>
-                          <td colSpan={10} className="comm-empty">No commission records found</td>
+                          <td colSpan={10} className="comm-empty">No benefits records found</td>
                         </tr>
                       )}
                     </tbody>
@@ -281,7 +281,7 @@ export default function CommissionsPage() {
       )}
 
       {view === 'rates' && (
-        <Panel title="MIS Commission Rate Chart" subtitle="Rates loaded from server — applied on monthly amount">
+        <Panel title="MIS Benefits Rate Chart" subtitle="Rates loaded from server — applied on monthly amount">
           {rateRows.length ? (
             <>
               <div className="comm-table-wrap">
@@ -309,9 +309,11 @@ export default function CommissionsPage() {
                 </table>
               </div>
               <div className="comm-chart-note">
-                <strong>Formula:</strong> Commission = Monthly Amount × Rate%
+                <strong>Formula:</strong> Benefits = Monthly Amount × Rate%
                 &nbsp;·&nbsp;
-                <strong>Upper Rank:</strong> Higher rank adviser gets the difference between their rate and the lower adviser's rate
+                <strong>Team Benefits:</strong> Higher rank adviser gets the difference between their rate and the lower adviser's rate on downline business
+                <br />
+                <strong>DEFOEX CODE (Rank 20):</strong> Flat 2% on every approved investment
                 &nbsp;·&nbsp;
                 <strong>SIS:</strong> Rate applied on total investment amount (lump sum)
               </div>
@@ -324,7 +326,7 @@ export default function CommissionsPage() {
 
       {view === 'calc' && (
         <div className="comm-calc-grid">
-          <Panel title="Commission Calculator">
+          <Panel title="Benefits Calculator">
             <div className="reg-form-row">
               <Field label="Plan Type">
                 <Select
@@ -373,12 +375,12 @@ export default function CommissionsPage() {
               </Field>
             </div>
             <button type="button" className="btn btn-primary btn-full" onClick={runCalc}>
-              Calculate Commission →
+              Calculate Benefits →
             </button>
 
             {calcResult && (
               <div className="comm-calc-result">
-                <div className="comm-calc-result-title">✅ Commission Result</div>
+                <div className="comm-calc-result-title">✅ Benefits Result</div>
                 {[
                   ['Plan', calcResult.plan],
                   ['Rank', calcResult.rank],
@@ -392,7 +394,7 @@ export default function CommissionsPage() {
                   </div>
                 ))}
                 <div className="comm-calc-total">
-                  <span>Direct Commission</span>
+                  <span>Direct Benefits</span>
                   <span>{fmt(calcResult.commission)}</span>
                 </div>
               </div>

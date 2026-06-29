@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import PrivateRoute from './PrivateRoute';
+import RoleRoute from './RoleRoute';
 import MainLayout from '../layouts/MainLayout/MainLayout';
 import { useAuth } from '../context/AuthContext';
 
@@ -54,11 +55,11 @@ export default function AppRoutes() {
       <Route path="/investments/*"   element={<Wrap><InvestmentsPage /></Wrap>} />
       <Route path="/approvals"       element={<Wrap><ApprovalsPage /></Wrap>} />
       <Route path="/reports"         element={<Wrap><ReportsPage /></Wrap>} />
-      <Route path="/wallet"          element={<Wrap><WalletPage /></Wrap>} />
+      <Route path="/wallet"          element={<Wrap><RoleRoute roles={['superadmin', 'branchmanager']}><WalletPage /></RoleRoute></Wrap>} />
       <Route path="/notifications"   element={<Wrap><NotificationsPage /></Wrap>} />
-      <Route path="/branches"        element={<Wrap><BranchesPage /></Wrap>} />
-      <Route path="/advisers"        element={<Wrap><AdvisersPage /></Wrap>} />
-      <Route path="/users"           element={<Wrap><UsersPage /></Wrap>} />
+      <Route path="/branches"        element={<Wrap><RoleRoute roles={['superadmin']}><BranchesPage /></RoleRoute></Wrap>} />
+      <Route path="/advisers"        element={<Wrap><RoleRoute roles={['superadmin', 'branchmanager']}><AdvisersPage /></RoleRoute></Wrap>} />
+      <Route path="/users"           element={<Wrap><RoleRoute roles={['superadmin']}><UsersPage /></RoleRoute></Wrap>} />
       <Route path="/commissions"     element={<Wrap><CommissionsPage /></Wrap>} />
       <Route path="/profile"         element={<Wrap><ProfilePage /></Wrap>} />
       <Route path="/settings"        element={<Wrap><SettingsPage /></Wrap>} />

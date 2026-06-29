@@ -67,9 +67,9 @@ export default function LoginPage() {
         </div>
         <div className="login-hero">
           <h1>Smart Investment<br />Management System</h1>
-          <p>Manage branches, investors, plans, commissions & wallets — all in one secure platform.</p>
+          <p>Manage branches, investors, plans, benefits & wallets — all in one secure platform.</p>
           <div className="login-features">
-            {['Multi-branch management', 'MIS/SIS investment plans', 'Commission tracking', 'Real-time wallet control'].map(f => (
+            {['Multi-branch management', 'MIS/SIS investment plans', 'Benefits tracking', 'Real-time wallet control'].map(f => (
               <div key={f} className="feature-item">
                 <span className="feature-check">✓</span> {f}
               </div>

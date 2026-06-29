@@ -10,6 +10,15 @@ import './ProfilePage.css';
 export default function ProfilePage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'superadmin';
+  const isBranchManager = user?.role === 'branchmanager';
+  const showBranchId = isAdmin || isBranchManager;
+
+  const profileFields = [
+    ['Username', user?.username],
+    ['Email', user?.email],
+    ['Mobile', user?.mobile || '—'],
+    ...(showBranchId ? [['Branch ID', user?.branch_id || '—']] : []),
+  ];
   const [pwForm, setPwForm] = useState({ current_password:'', new_password:'', confirm_password:'' });
   const [saving, setSaving] = useState(false);
   const [pwError, setPwError] = useState('');
@@ -48,12 +57,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="profile-fields">
-            {[
-              ['Username', user?.username],
-              ['Email', user?.email],
-              ['Mobile', user?.mobile || '—'],
-              ['Branch ID', user?.branch_id || '—'],
-            ].map(([k,v]) => (
+            {profileFields.map(([k,v]) => (
               <div key={k} className="profile-field-row">
                 <span>{k}</span><strong>{v}</strong>
               </div>

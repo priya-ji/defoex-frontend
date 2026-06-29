@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import Panel from '../../components/Panel/Panel';
 import Badge from '../../components/Badge/Badge';
 import Loading from '../../components/Loading/Loading';
@@ -15,7 +16,9 @@ export default function ApprovalsPage() {
 
   const refreshCounts = useCallback(() => {
     memberService.pending(1).then(r => setRegCount(r.data.data?.total || 0)).catch(() => {});
-    investmentService.list({ status: 'Pending' }).then(r => setPlanCount(r.data.data?.total || 0)).catch(() => {});
+    investmentService.list({ status: 'pending', per_page: 1 })
+      .then(r => setPlanCount(Number(r.data.total ?? (r.data.data || []).length) || 0))
+      .catch(() => {});
   }, []);
 
   useEffect(() => { refreshCounts(); }, [refreshCounts]);
@@ -55,7 +58,7 @@ export default function ApprovalsPage() {
 
       {tab === 0
         ? <RegApprovals onRefresh={refreshCounts} />
-        : <InvApprovals onRefresh={refreshCounts} />}
+        : <InvApprovals onRefresh={refreshCounts} setPlanCount={setPlanCount} />}
     </div>
   );
 }
@@ -287,8 +290,8 @@ function RegApprovals({ onRefresh }) {
     </>
   );
 }
-function InvApprovals({ onRefresh }) {
-  const [data, setData]       = useState({ items: [] });
+function InvApprovals({ onRefresh, setPlanCount }) {
+  const [data, setData]       = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(false);
   const [detail, setDetail]   = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -296,8 +299,13 @@ function InvApprovals({ onRefresh }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    investmentService.list({ status: 'pending' })
-      .then(r => setData({ items: r.data.data || [] }))
+    investmentService.list({ status: 'pending', per_page: 100 })
+      .then(r => {
+        const items = r.data.data || [];
+        const total = Number(r.data.total ?? items.length) || 0;
+        setData({ items, total });
+        if (setPlanCount) setPlanCount(total);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -327,7 +335,7 @@ function InvApprovals({ onRefresh }) {
     <>
       <Panel
         title="Pending Investment Plans"
-        subtitle="Approving a plan deducts from branch wallet and adds commission for the adviser"
+        subtitle="Approving a plan deducts from branch wallet and adds benefits for the adviser"
         actions={<button className="btn btn-outline btn-sm" onClick={load}>↻ Refresh</button>}
       >
         {loading ? <Loading /> : (
@@ -336,7 +344,7 @@ function InvApprovals({ onRefresh }) {
               <Alert type="warning">
                 <strong>Note:</strong> Approving a plan will automatically deduct the monthly amount
                 from the branch current balance and add it to the cash wallet.
-                Commission will be calculated for the adviser.
+                Benefits will be calculated for the adviser.
               </Alert>
             )}
             <table className="data-table">
@@ -470,7 +478,7 @@ function InvApprovals({ onRefresh }) {
               <Alert type="warning">
                 This will deduct <strong>₹{Number(confirm.plan.monthly_amount).toLocaleString('en-IN')}</strong> from
                 the branch current balance and add it to the cash wallet.
-                Commission will be auto-calculated for the adviser.
+                Benefits will be auto-calculated for the adviser.
               </Alert>
             )}
             <div className="modal-actions" style={{marginTop:16}}>

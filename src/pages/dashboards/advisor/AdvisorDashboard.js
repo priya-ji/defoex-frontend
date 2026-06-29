@@ -8,6 +8,18 @@ import './AdvisorDashboard.css';
 const fmt  = n => `\u20b9${(n||0).toLocaleString('en-IN')}`;
 const fmtN = n => (n||0).toLocaleString('en-IN');
 
+const fmtBenefitType = (c) => {
+  const t = c?.benefit_type || c?.commission_type || 'Direct';
+  if (t === 'Direct' || t === 'Direct Benefits') return 'Direct Benefits';
+  if (t === 'Team' || t === 'Upper Rank' || t === 'Team Benefits') return 'Team Benefits';
+  return t;
+};
+
+const isDirectBenefit = (c) => {
+  const t = c?.commission_type || '';
+  return t === 'Direct';
+};
+
 export default function AdvisorDashboard() {
   const { user } = useAuth();
   const [view, setView] = useState('dashboard');
@@ -74,16 +86,15 @@ function DashboardView() {
   if (loading) return <Loading />;
   if (!data)   return <div className="adv-error">Could not load dashboard</div>;
 
-  const totalComm = (data.commissions||[]).reduce((s,c) => s + parseFloat(c.commission_amount||0), 0);
   const adv = data.adviser || {};
 
   const STATS = [
-    { label: 'My Investors',    value: fmtN(data.my_investors||0),  icon: '👤', color: 'var(--primary)'  },
-    { label: 'My Investments',  value: fmtN(data.my_investments||0),icon: '📈', color: 'var(--success)'  },
-    { label: 'My Commission',   value: fmt(data.my_commission||totalComm), icon: '💰', color: '#ff9800'  },
-    { label: 'Downline',        value: fmtN(data.downline_count||0), icon: '🌐', color: '#9c27b0'        },
-    { label: 'Down Investors',  value: fmtN(data.down_investors||0), icon: '👥', color: 'var(--primary)' },
-    { label: 'Total Business',  value: fmt(data.total_business||0),  icon: '🏦', color: 'var(--success)' },
+    { label: 'Direct Benefits',  value: fmt(data.direct_benefits||0), icon: '💰', color: 'var(--success)' },
+    { label: 'Team Benefits',    value: fmt(data.team_benefits||0),   icon: '🌐', color: '#ff9800'      },
+    { label: 'Self Business',    value: fmt(data.self_business||0),   icon: '📈', color: 'var(--primary)' },
+    { label: 'Team Business',    value: fmt(data.team_business||0),   icon: '🏦', color: '#9c27b0'        },
+    { label: 'My Investors',     value: fmtN(data.my_investors||0),  icon: '👤', color: 'var(--primary)' },
+    { label: 'Downline Advisers',value: fmtN(data.downline_count||0), icon: '👥', color: 'var(--text-muted)' },
   ];
 
   return (
@@ -106,12 +117,31 @@ function DashboardView() {
         ))}
       </div>
 
+      <Panel title="Benefits Overview" subtitle="Direct Benefits from your investors · Team Benefits from downline business" className="mt-3">
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div style={{padding:16,background:'var(--success-bg)',borderRadius:'var(--border-radius-md)'}}>
+            <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginBottom:4}}>CASE 2 — Direct Benefits</div>
+            <div style={{fontSize:'1.5rem',fontWeight:800,color:'var(--success)'}}>{fmt(data.direct_benefits||0)}</div>
+            <div style={{fontSize:'0.78rem',color:'var(--text-muted)',marginTop:6}}>
+              Self business: {fmt(data.self_business||0)} · {fmtN(data.my_investors||0)} direct investors
+            </div>
+          </div>
+          <div style={{padding:16,background:'var(--warning-bg)',borderRadius:'var(--border-radius-md)'}}>
+            <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginBottom:4}}>CASE 3 — Team Benefits</div>
+            <div style={{fontSize:'1.5rem',fontWeight:800,color:'#ff9800'}}>{fmt(data.team_benefits||0)}</div>
+            <div style={{fontSize:'0.78rem',color:'var(--text-muted)',marginTop:6}}>
+              Team business: {fmt(data.team_business||0)} · {fmtN(data.downline_count||0)} downline advisers
+            </div>
+          </div>
+        </div>
+      </Panel>
+
       {/* Recent commissions */}
       {data.commissions?.length > 0 && (
-        <Panel title="Recent Commissions">
+        <Panel title="Recent Benefits">
           <table className="data-table">
             <thead>
-              <tr><th>#</th><th>Plan</th><th>Tenure</th><th>Base</th><th>Rate</th><th>Commission</th><th>Type</th><th>Status</th></tr>
+              <tr><th>#</th><th>Plan</th><th>Tenure</th><th>Base</th><th>Rate</th><th>Benefits</th><th>Type</th><th>Status</th></tr>
             </thead>
             <tbody>
               {data.commissions.slice(0,5).map((c,i) => (
@@ -123,8 +153,8 @@ function DashboardView() {
                   <td style={{color:'var(--primary)',fontWeight:700}}>{c.commission_rate}%</td>
                   <td><strong style={{color:'var(--success)'}}>{fmt(c.commission_amount)}</strong></td>
                   <td><span style={{fontSize:'0.72rem',fontWeight:700,padding:'2px 8px',borderRadius:4,
-                    background:c.commission_type==='Direct'?'var(--success-bg)':'var(--warning-bg)',
-                    color:c.commission_type==='Direct'?'var(--success)':'var(--warning)'}}>{c.commission_type||'Direct'}</span></td>
+                    background:isDirectBenefit(c)?'var(--success-bg)':'var(--warning-bg)',
+                    color:isDirectBenefit(c)?'var(--success)':'var(--warning)'}}>{fmtBenefitType(c)}</span></td>
                   <td><span style={{fontSize:'0.72rem',fontWeight:700,padding:'2px 9px',borderRadius:10,
                     background:c.status==='Paid'?'var(--success-bg)':'var(--warning-bg)',
                     color:c.status==='Paid'?'var(--success)':'var(--warning)'}}>{c.status}</span></td>
@@ -176,12 +206,16 @@ function AdviserInfoView() {
             </div>
           ))}
         </Panel>
-        <Panel title="Commission Summary">
+        <Panel title="Benefits Summary">
           {[
-            ['Total Commission',   fmt(data.total_commission),   'var(--text-primary)'],
-            ['Paid Commission',    fmt(data.paid_commission),    'var(--success)'],
-            ['Pending Commission', fmt(data.pending_commission), 'var(--warning)'],
-            ['Direct Investors',   fmtN(data.investors_count),  'var(--primary)'],
+            ['Direct Benefits',  fmt(data.direct_benefits||0),  'var(--success)'],
+            ['Team Benefits',    fmt(data.team_benefits||0),    '#ff9800'],
+            ['Total Benefits',   fmt(data.total_commission),    'var(--text-primary)'],
+            ['Paid Benefits',    fmt(data.paid_commission),     'var(--success)'],
+            ['Pending Benefits', fmt(data.pending_commission),  'var(--warning)'],
+            ['Self Business',    fmt(data.self_business||0),    'var(--primary)'],
+            ['Team Business',    fmt(data.team_business||0),    '#9c27b0'],
+            ['Direct Investors', fmtN(data.investors_count),    'var(--primary)'],
           ].map(([k,v,color]) => (
             <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border)',fontSize:'0.85rem'}}>
               <span style={{color:'var(--text-muted)'}}>{k}</span>
@@ -226,7 +260,7 @@ function SelfContributionView() {
           {[
             ['Total Investments', fmtN(data.total),            'var(--primary)'],
             ['Total Business',    fmt(data.total_business),    'var(--success)'],
-            ['Direct Commission', fmt(data.direct_commission), '#ff9800'],
+            ['Direct Benefits', fmt(data.direct_commission), '#ff9800'],
           ].map(([label,val,color]) => (
             <div key={label} style={{background:'var(--bg-card)',border:'1px solid var(--border)',borderLeft:`3px solid ${color}`,borderRadius:'var(--border-radius-lg)',padding:'12px 16px'}}>
               <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginBottom:3}}>{label}</div>
@@ -303,7 +337,7 @@ function DownContributionView() {
           {[
             ['Downline Advisers', fmtN(data.downline_count),  'var(--primary)'],
             ['Total Business',    fmt(data.total_business),   'var(--success)'],
-            ['Upper Commission',  fmt(data.upper_commission), '#ff9800'],
+            ['Team Benefits', fmt(data.team_benefits||data.upper_commission), '#ff9800'],
           ].map(([label,val,color]) => (
             <div key={label} style={{background:'var(--bg-card)',border:'1px solid var(--border)',borderLeft:`3px solid ${color}`,borderRadius:'var(--border-radius-lg)',padding:'12px 16px'}}>
               <div style={{fontSize:'0.75rem',color:'var(--text-muted)',marginBottom:3}}>{label}</div>
