@@ -63,3 +63,26 @@ export function formatISTLongDate(date = new Date()) {
     year: 'numeric',
   });
 }
+
+/** Today's date in IST as YYYY-MM-DD (for date inputs / registration). */
+export function todayISOIST(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value || '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+/** Current clock time in IST — e.g. "22:56 IST" */
+export function formatISTTime(date = new Date()) {
+  return date.toLocaleString('en-IN', {
+    timeZone: TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }) + ' IST';
+}

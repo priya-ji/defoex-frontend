@@ -10,13 +10,11 @@ import api from '../../services/api';
 import { memberService } from '../../services/memberService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { todayISOIST } from '../../utils/dateTime';
 import './MembersPage.css';
 
 const STEPS = ['Adviser Verify', 'Personal Info', 'Address & KYC', 'Nominee & Bank', 'Confirm'];
-const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+const todayISO = todayISOIST;
 const INVESTOR_FEE = 10;
 
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
@@ -377,7 +375,7 @@ function NewRegistration({ onDone }) {
     try {
       const { data } = await memberService.register({
         ...form,
-        adviser_code: adviserCode.trim(),
+        adviser_code: adviser?.adviser_code || adviserCode.trim(),
         member_type: 'Investor',
         member_fees: INVESTOR_FEE,
         date_of_joining: todayISO(),
@@ -586,7 +584,7 @@ function NewRegistration({ onDone }) {
           </Alert>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 20px',fontSize:'0.85rem'}}>
             {[
-              ['Adviser Code',   adviserCode],
+              ['Adviser Code',   adviser?.adviser_code || adviserCode],
               ['Full Name',      form.full_name],
               ['Father / Spouse', form.father_spouse_name],
               ['Date of Birth',  form.date_of_birth],

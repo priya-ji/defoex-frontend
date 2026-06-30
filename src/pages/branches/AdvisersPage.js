@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { formatISTDate } from '../../utils/dateTime';
+import { formatISTDate, todayISOIST } from '../../utils/dateTime';
 import './AdvisersPage.css';
 
 const API = process.env.REACT_APP_API_URL || '';
@@ -30,10 +30,7 @@ const RANK_OPTIONS = [
   { id: 19, label: '19. House 7' }, { id: 20, label: '20. House 8' },
 ];
 const rankLabel = id => RANK_OPTIONS.find(r => r.id === id)?.label || `${id}`;
-const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+const todayISO = todayISOIST;
 const ADVISER_FEE = 650;
 
 /** Promoter rank N → new adviser may pick ranks 1 .. N-1 (flowchart conditions 01–15). */
