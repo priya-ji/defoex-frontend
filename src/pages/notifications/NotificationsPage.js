@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Panel from '../../components/Panel/Panel';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { formatIST } from '../../utils/dateTime';
 import './NotificationsPage.css';
 
 export default function NotificationsPage() {
@@ -50,7 +51,7 @@ export default function NotificationsPage() {
                 <div className="notif-content">
                   <div className="notif-title">{n.title}</div>
                   <div className="notif-msg">{n.message}</div>
-                  <div className="notif-time">{n.created_at?.split('T')[0]}</div>
+                  <div className="notif-time">{formatIST(n.created_at)}</div>
                 </div>
                 {!n.is_read && <div className="notif-dot" />}
               </div>

@@ -5,6 +5,7 @@ import Loading from '../../components/Loading/Loading';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { formatIST } from '../../utils/dateTime';
 import './WalletPage.css';
 
 // ── Format helpers ──────────────────────────────
@@ -20,18 +21,6 @@ const fmtCr = n => {
   return `₹${num.toLocaleString('en-IN')}`;
 };
 
-// FIX 3: Convert UTC to IST (+5:30)
-const fmtIST = (utcStr) => {
-  if (!utcStr) return '—';
-  const d   = new Date(utcStr);
-  const ist = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
-  const dd  = String(ist.getUTCDate()).padStart(2,'0');
-  const mm  = String(ist.getUTCMonth()+1).padStart(2,'0');
-  const yy  = ist.getUTCFullYear();
-  const hh  = String(ist.getUTCHours()).padStart(2,'0');
-  const mn  = String(ist.getUTCMinutes()).padStart(2,'0');
-  return `${dd}/${mm}/${yy} ${hh}:${mn} IST`;
-};
 
 const MAX_TXN = 1_000_000_000; // ₹1,00,00,00,000 (100 Cr) — admin limit & max per transaction
 const ADMIN_LIMIT = MAX_TXN;
@@ -258,7 +247,7 @@ function AdminWalletView() {
                 <tr key={t.id}>
                   <td>{i+1}</td>
                   {/* FIX 3: Correct IST time */}
-                  <td style={{fontSize:'0.78rem',fontFamily:'monospace'}}>{fmtIST(t.created_at)}</td>
+                  <td style={{fontSize:'0.78rem',fontFamily:'monospace'}}>{formatIST(t.created_at)}</td>
                   <td><strong>{t.branch_name}</strong></td>
                   <td>
                     <span className={`txn-badge ${t.transaction_type?.toLowerCase()}`}>
@@ -337,7 +326,7 @@ function BMWalletView() {
             <tbody>
               {txns.map(t => (
                 <tr key={t.id}>
-                  <td style={{fontSize:'0.78rem',fontFamily:'monospace'}}>{fmtIST(t.created_at)}</td>
+                  <td style={{fontSize:'0.78rem',fontFamily:'monospace'}}>{formatIST(t.created_at)}</td>
                   <td><span className={`txn-badge ${t.transaction_type?.toLowerCase()}`}>{t.transaction_type}</span></td>
                   <td><strong style={{color:t.transaction_type==='TopUp'?'var(--success)':'var(--danger)'}}>
                     {t.transaction_type==='TopUp'?'+':'−'}{fmt(t.amount)}

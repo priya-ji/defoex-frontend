@@ -157,7 +157,9 @@ export default function PrintReceipt({ irn, onClose }) {
   const rem  = data?.remaining_installments || 0;
   const pct  = data?.completion_pct         || 0;
   const fmt  = n => `₹${(n || 0).toLocaleString('en-IN')}`;
-  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' });
+  const today = new Date().toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: '2-digit', month: 'long', year: 'numeric',
+  });
   const tenureLabel = plan.plan_tenure === '3Y' ? '3 Years (36 Months)'
                     : plan.plan_tenure === '5Y' ? '5 Years (60 Months)'
                     : '7 Years (84 Months)';

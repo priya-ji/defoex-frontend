@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { formatISTDate } from '../../utils/dateTime';
 import './AdvisersPage.css';
 
 const API = process.env.REACT_APP_API_URL || '';
@@ -761,7 +762,7 @@ function ListAdvisers({ isAdmin }) {
                   <td>{a.full_name}</td>
                   <td>{a.father_spouse_name||a.father_name||'—'}</td>
                   <td>{a.mobile}</td>
-                  <td>{a.date_of_joining||a.created_at?.slice(0,10)||'—'}</td>
+                  <td>{a.date_of_joining || formatISTDate(a.created_at)}</td>
                   <td>{a.promoter_adviser_name||a.parent_adviser_name||'—'}</td>
                   <td className="af-mono">{a.promoter_adviser_id||a.parent_adviser_code||'—'}</td>
                   <td>
@@ -855,7 +856,7 @@ function ApprovedAdvisers() {
                   <td>{a.mobile}</td>
                   <td>{a.rank_name||a.rank||'—'}</td>
                   <td className="af-mono">{a.promoter_adviser_id||'—'}</td>
-                  <td>{a.created_at?.slice(0,10)||'—'}</td>
+                  <td>{formatISTDate(a.created_at)}</td>
                   <td>
                     <div className="af-action-pair">
                       <button className="af-btn-approve" onClick={()=>approve(a.id)}>✓ Approve Adviser</button>

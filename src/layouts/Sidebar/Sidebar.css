@@ -182,3 +182,25 @@
   z-index: 10;
 }
 .sidebar.collapsed .sidebar-toggle { right: -10px; }
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: min(280px, 88vw);
+    transition: transform var(--transition-slow);
+    z-index: 200;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed {
+    width: min(280px, 88vw);
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+}

@@ -381,10 +381,27 @@
 
 @media (max-width: 520px) {
   .bm-action-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .bm-top-actions {
+    flex-direction: column;
   }
 
   .bm-top-actions .btn {
-    flex: 1 1 auto;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bm-top {
+    flex-direction: column;
+  }
+
+  .wallet-big-card {
+    padding: 18px;
+  }
+
+  .wbc-amount {
+    font-size: 1.35rem;
   }
 }

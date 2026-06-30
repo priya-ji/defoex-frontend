@@ -45,7 +45,7 @@ function ReceiptBody({ data }) {
   const sisRows = [
     ['Investment ID:', data.investment_id, 'Investor ID:', data.investor_id],
     ['Investor Name:', data.investor_name, 'Mobile:', data.mobile],
-    ['Plan Name:', data.plan_name, 'Investment Term', data.investment_term],
+    ['Plan Name:', data.plan_name, 'Investment Tenure:', data.investment_term || 'Single'],
     ['Total received', String(data.total_received ?? 0), 'Payment Mode', data.payment_mode],
   ];
 

@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { formatISTNow } from '../../utils/dateTime';
 import './Topbar.css';
 
-export default function Topbar({ collapsed }) {
+export default function Topbar({ collapsed, onMenuToggle, mobileOpen }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [unread, setUnread] = useState(0);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 60000);
+    const timer = setInterval(() => setTime(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -21,14 +22,21 @@ export default function Topbar({ collapsed }) {
     }).catch(() => {});
   }, []);
 
-  const formatDate = (d) =>
-    d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const formatDate = (d) => formatISTNow(d);
 
   return (
     <header className={`topbar${collapsed ? ' shifted' : ''}`}>
       <div className="topbar-left">
+        <button
+          type="button"
+          className={`topbar-menu-btn${mobileOpen ? ' open' : ''}`}
+          onClick={onMenuToggle}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+        >
+          <span /><span /><span />
+        </button>
         <div className="topbar-title">DefOex IntraTech</div>
-        <div className="topbar-date">{formatDate(time)}</div>
+        <div className="topbar-date hide-mobile">{formatDate(time)}</div>
       </div>
       <div className="topbar-right">
         <button className="topbar-btn" onClick={() => navigate('/notifications')}>
@@ -37,7 +45,7 @@ export default function Topbar({ collapsed }) {
         </button>
         <div className="topbar-user" onClick={() => navigate('/profile')}>
           <div className="topbar-avatar">{user?.full_name?.[0] || 'U'}</div>
-          <div className="topbar-user-info">
+          <div className="topbar-user-info hide-mobile">
             <span className="topbar-name">{user?.full_name}</span>
             <span className="topbar-role">{user?.role}</span>
           </div>

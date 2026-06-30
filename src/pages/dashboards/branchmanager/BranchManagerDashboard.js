@@ -8,6 +8,7 @@ import Loading from '../../../components/Loading/Loading';
 import { reportService } from '../../../services/reportService';
 import { branchService } from '../../../services/branchService';
 import { useAuth } from '../../../context/AuthContext';
+import { formatISTNow } from '../../../utils/dateTime';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './BranchManagerDashboard.css';
 
@@ -108,7 +109,7 @@ export default function BranchManagerDashboard() {
             + New Plan
           </button>
           <div className="bm-date">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            {formatISTNow()}
           </div>
         </div>
       </div>

@@ -6,19 +6,11 @@ import Pagination from '../../components/Pagination/Pagination';
 import { commissionService } from '../../services/commissionService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { formatISTDate } from '../../utils/dateTime';
 import './CommissionsPage.css';
 
 const fmt = n => `₹${(parseFloat(n) || 0).toLocaleString('en-IN')}`;
 
-const fmtIST = (utcStr) => {
-  if (!utcStr) return '—';
-  const d = new Date(utcStr);
-  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
-  const dd = String(ist.getUTCDate()).padStart(2, '0');
-  const mm = String(ist.getUTCMonth() + 1).padStart(2, '0');
-  const yy = ist.getUTCFullYear();
-  return `${dd}/${mm}/${yy}`;
-};
 
 const RANK_ORDER = [
   'SR', 'SO', 'SD', 'SI', 'DO', 'RO', 'ZO', 'EM',
@@ -262,7 +254,7 @@ export default function CommissionsPage() {
                               {c.status}
                             </span>
                           </td>
-                          <td className="comm-date">{fmtIST(c.created_at)}</td>
+                          <td className="comm-date">{formatISTDate(c.created_at)}</td>
                         </tr>
                       ))}
                       {!filteredItems.length && (

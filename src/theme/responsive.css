@@ -1,11 +1,64 @@
+/* ── Global responsive breakpoints ───────────────────────────────────────── */
+
 @media (max-width: 1200px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 900px) {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
 }
+
+@media (max-width: 768px) {
+  html { font-size: 13px; }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: block !important;
+  }
+
+  /* Buttons */
+  .btn-lg {
+    padding: 10px 20px;
+    font-size: 0.88rem;
+  }
+
+  /* Panels */
+  .panel__header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .panel__body {
+    padding: 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .panel__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 600px) {
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .hide-mobile { display: none !important; }
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  html { font-size: 12.5px; }
 }

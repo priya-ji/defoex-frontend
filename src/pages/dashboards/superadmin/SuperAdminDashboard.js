@@ -6,6 +6,7 @@ import Panel from '../../../components/Panel/Panel';
 import Loading from '../../../components/Loading/Loading';
 import { reportService } from '../../../services/reportService';
 import { branchService } from '../../../services/branchService';
+import { formatISTLongDate } from '../../../utils/dateTime';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './SuperAdminDashboard.css';
 
@@ -117,7 +118,7 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
           <div className="dashboard-date">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {formatISTLongDate()}
           </div>
         </div>
       </div>

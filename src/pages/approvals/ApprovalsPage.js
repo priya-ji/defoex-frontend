@@ -8,7 +8,7 @@ import Modal from '../../components/Modal/Modal';
 import Alert from '../../components/Alert/Alert';
 import { memberService } from '../../services/memberService';
 import { investmentService } from '../../services/investmentService';
-import InvestorCredentialsModal, { showInvestorCredentialToasts } from '../../components/InvestorCredentialsModal/InvestorCredentialsModal';
+import InvestorCredentialsModal from '../../components/InvestorCredentialsModal/InvestorCredentialsModal';
 import './ApprovalsPage.css';
 
 export default function ApprovalsPage() {
@@ -122,8 +122,11 @@ function RegApprovals({ onRefresh }) {
       if (action === 'approve') {
         const creds = data?.data?.credentials;
         if (creds?.username) {
-          setCredModal(creds);
-          showInvestorCredentialToasts(creds);
+          setCredModal({
+            ...creds,
+            full_name: member.full_name,
+            investor_id: member.investor_id,
+          });
         } else {
           toast.success(`✅ Registration approved for ${member.full_name}`, { duration: 4000 });
         }

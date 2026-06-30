@@ -3,6 +3,7 @@ import Panel from '../../../components/Panel/Panel';
 import Loading from '../../../components/Loading/Loading';
 import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { formatISTDate } from '../../../utils/dateTime';
 import './AdvisorDashboard.css';
 
 const fmt  = n => `\u20b9${(n||0).toLocaleString('en-IN')}`;
@@ -195,7 +196,7 @@ function AdviserInfoView() {
             ['Mobile',        data.mobile],
             ['Email',         data.email||'—'],
             ['Rank',          `${data.rank_name} (Rank ${data.rank_id})`],
-            ['Joined',        data.created_at?.split('T')[0]||'—'],
+            ['Joined',        formatISTDate(data.created_at)],
             ['Promoter Code', data.parent_adviser_code||'—'],
             ['Promoter Name', data.promoter?.full_name||'—'],
             ['Promoter Rank', data.promoter?.rank_name||'—'],

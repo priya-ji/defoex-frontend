@@ -488,3 +488,75 @@
   color: #94a3b8;
   font-size: 14px;
 }
+
+@media (max-width: 900px) {
+  .plan-layout,
+  .plan-layout.single {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .plan-card {
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .input-btn-row {
+    flex-direction: column;
+  }
+
+  .input-btn-row .btn {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filter-sel {
+    width: 100%;
+  }
+
+  .tab-top-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tenure-row {
+    flex-direction: column;
+  }
+
+  .payment-toggle {
+    flex-direction: column;
+  }
+
+  .action-pair {
+    flex-direction: column;
+  }
+
+  .action-pair .btn-approve,
+  .action-pair .btn-reject {
+    width: 100%;
+    text-align: center;
+  }
+
+  .inv-table {
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .state-msg {
+    padding: 32px 16px;
+  }
+}

@@ -241,5 +241,22 @@
 
   .comm-hero {
     gap: 14px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .comm-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .comm-hero-stat {
+    min-width: 0;
+  }
+
+  .comm-filters {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

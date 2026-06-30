@@ -43,7 +43,7 @@ const NAV = {
   ],
 };
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
   const { user, wallet, logout } = useAuth();
   const navigate = useNavigate();
   const rawRole = user?.role || 'member';
@@ -53,7 +53,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   const handleLogout = async () => { await logout(); navigate('/login'); };
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="logo-icon">D</div>
@@ -87,7 +87,8 @@ export default function Sidebar({ collapsed, onToggle }) {
         {items.map(item => (
           <NavLink key={item.path} to={item.path}
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            title={collapsed ? item.label : ''}>
+            title={collapsed ? item.label : ''}
+            onClick={() => onMobileClose?.()}>
             <span className="nav-icon">{item.icon}</span>
             {!collapsed && <span className="nav-label">{item.label}</span>}
           </NavLink>
@@ -96,11 +97,11 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <NavLink to="/settings" className="nav-item" title={collapsed ? 'Settings' : ''}>
+        <NavLink to="/settings" className="nav-item" title={collapsed ? 'Settings' : ''} onClick={() => onMobileClose?.()}>
           <span className="nav-icon">⚙️</span>
           {!collapsed && <span className="nav-label">Settings</span>}
         </NavLink>
-        <NavLink to="/profile" className="nav-item" title={collapsed ? 'Profile' : ''}>
+        <NavLink to="/profile" className="nav-item" title={collapsed ? 'Profile' : ''} onClick={() => onMobileClose?.()}>
           <span className="nav-icon">👤</span>
           {!collapsed && <span className="nav-label">Profile</span>}
         </NavLink>

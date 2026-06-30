@@ -1,8 +1,14 @@
 import React from 'react';
 import Modal from '../Modal/Modal';
 import toast from 'react-hot-toast';
+import './InvestorCredentialsModal.css';
 
-/** Show username/password after investor is created or approved. */
+function initials(name) {
+  if (!name) return 'IN';
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+}
+
+/** Centered dialog — username & password after investor approval. */
 export default function InvestorCredentialsModal({ creds, onClose }) {
   if (!creds) return null;
 
@@ -15,53 +21,62 @@ export default function InvestorCredentialsModal({ creds, onClose }) {
   };
 
   return (
-    <Modal open={!!creds} onClose={onClose} title="🎉 Congratulations Investor Created!" size="sm">
-      <div style={{ textAlign: 'center', padding: '8px 0' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎊</div>
-        <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 16, color: 'var(--success)' }}>
-          Investor Account Created Successfully!
+    <Modal
+      open={!!creds}
+      onClose={onClose}
+      title="Login Credentials"
+      size="sm"
+    >
+      <div className="investor-cred-modal">
+        <div className="investor-cred-header">
+          <div className="investor-cred-avatar">{initials(creds.full_name)}</div>
+          <div className="investor-cred-info">
+            <div className="investor-cred-name">
+              {creds.full_name || 'Investor Account Created'}
+            </div>
+            {creds.investor_id && (
+              <div className="investor-cred-id">{creds.investor_id}</div>
+            )}
+          </div>
         </div>
-        <div style={{
-          background: 'var(--bg-input)', borderRadius: 'var(--border-radius-md)',
-          padding: '16px', fontFamily: 'monospace', fontSize: '0.9rem',
-          lineHeight: 2.5, marginBottom: 12,
-        }}>
-          <div>Username: <strong style={{ color: 'var(--primary)' }}>{creds.username}</strong></div>
+
+        <div className="investor-cred-box">
+          <div className="investor-cred-row">
+            <span>Username</span>
+            <strong>{creds.username}</strong>
+          </div>
           {creds.password ? (
-            <div>Password: <strong style={{ color: 'var(--primary)' }}>{creds.password}</strong></div>
+            <div className="investor-cred-row investor-cred-row--password">
+              <span>Password</span>
+              <strong>{creds.password}</strong>
+            </div>
           ) : (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              (Login already existed — password not regenerated)
+            <div className="investor-cred-row">
+              <span>Password</span>
+              <strong style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Existing login — not regenerated
+              </strong>
             </div>
           )}
         </div>
+
         {creds.password && (
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 16 }}>
-            System generated password (10 digit hexadecimal)
+          <div className="investor-cred-notice">
+            Save these credentials now. The password cannot be recovered — share with the investor for login.
           </div>
         )}
-        <button type="button" className="btn btn-primary" onClick={copy}>Copy Credentials</button>
-        {' '}
-        <button type="button" className="btn btn-outline" onClick={onClose}>Close</button>
+
+        <div className="investor-cred-actions">
+          {creds.password && (
+            <button type="button" className="btn btn-outline" onClick={copy}>
+              Copy Credentials
+            </button>
+          )}
+          <button type="button" className="btn btn-primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
       </div>
     </Modal>
   );
-}
-
-export function showInvestorCredentialToasts(creds) {
-  if (!creds?.username) return;
-  toast.success('Investor created successfully!');
-  if (creds.password) {
-    setTimeout(() => {
-      toast(t => (
-        <div>
-          <div style={{ fontWeight: 700, color: '#00c853', marginBottom: 6 }}>🎉 Login Credentials</div>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: 2 }}>
-            <div>Username: <strong>{creds.username}</strong></div>
-            <div>Password: <strong>{creds.password}</strong></div>
-          </div>
-        </div>
-      ), { duration: 15000, style: { minWidth: 260 } });
-    }, 400);
-  }
 }

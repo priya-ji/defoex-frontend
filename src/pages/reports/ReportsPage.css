@@ -27,4 +27,12 @@
 .list-summary { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; }
 
 @media (max-width: 1100px) { .report-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 700px) { .report-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .report-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px) { .report-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 600px) {
+  .wallet-summary-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
