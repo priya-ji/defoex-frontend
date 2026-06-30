@@ -720,6 +720,7 @@ function ApproveInvestment() {
 // ── All Plans ───────────────────────────────────────────────────────────────
 function AllPlans() {
   const { user } = useAuth();
+  const isMember = user?.role === 'member';
   const [investments, setInvestments] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [planType,    setPlanType]    = useState('');
@@ -745,7 +746,7 @@ function AllPlans() {
     <div className="approve-tab">
       {receiptIrn && <BranchReceipt irn={receiptIrn} onClose={() => setReceiptIrn(null)} />}
       <div className="tab-top-row">
-        <h2 className="card-title">All Plans</h2>
+        <h2 className="card-title">{isMember ? 'My Plans' : 'All Plans'}</h2>
         <div className="filter-row">
           <select className="filter-sel" value={planType} onChange={(e) => setPlanType(e.target.value)}>
             <option value="">All Types</option>
@@ -820,7 +821,7 @@ function AllPlans() {
 }
 
 // ── Root ────────────────────────────────────────────────────────────────────
-const TABS = [
+const STAFF_TABS = [
   { key: 'all',     label: 'All Plans' },
   { key: 'mis',     label: 'New MIS Plan' },
   { key: 'sis',     label: 'New SIS Plan' },
@@ -828,36 +829,49 @@ const TABS = [
   { key: 'approve', label: 'Approve Investment' },
 ];
 
+const MEMBER_TABS = [{ key: 'all', label: 'My Plans' }];
+
 export default function InvestmentPlans() {
-  const [tab, setTab] = useState('mis');
+  const { user } = useAuth();
+  const isMember = user?.role === 'member';
+  const tabs = isMember ? MEMBER_TABS : STAFF_TABS;
+  const [tab, setTab] = useState(isMember ? 'all' : 'mis');
+
+  useEffect(() => {
+    if (isMember && tab !== 'all') setTab('all');
+  }, [isMember, tab]);
 
   return (
     <div className="page-enter">
       <div className="page-header">
         <div>
-          <h1>Investment Plans</h1>
-          <p className="text-muted">MIS / SIS plan management</p>
+          <h1>{isMember ? 'My Investments' : 'Investment Plans'}</h1>
+          <p className="text-muted">
+            {isMember ? 'View your MIS and SIS investment plans' : 'MIS / SIS plan management'}
+          </p>
         </div>
       </div>
 
-      <div className="tab-bar">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            className={`tab-btn ${tab === t.key ? 'active' : ''}`}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 && (
+        <div className="tab-bar">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              className={`tab-btn ${tab === t.key ? 'active' : ''}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="tab-body">
         {tab === 'all'     && <AllPlans />}
-        {tab === 'mis'     && <NewMISPlan />}
-        {tab === 'sis'     && <NewSISPlan />}
-        {tab === 'contrib' && <MISContribution />}
-        {tab === 'approve' && <ApproveInvestment />}
+        {!isMember && tab === 'mis'     && <NewMISPlan />}
+        {!isMember && tab === 'sis'     && <NewSISPlan />}
+        {!isMember && tab === 'contrib' && <MISContribution />}
+        {!isMember && tab === 'approve' && <ApproveInvestment />}
       </div>
     </div>
   );

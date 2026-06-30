@@ -307,6 +307,7 @@ function Step5({form,set}){
           <RR l="Name"           v={`${form.salutation} ${form.full_name}`.trim()}/>
           <RR l="Father/Spouse"  v={form.father_spouse_name}/>
           <RR l="DOB / Age"      v={form.date_of_birth?`${form.date_of_birth} (${form.age} yrs)`:''}/>
+          <RR l="Email"          v={form.email}/>
           <RR l="Gender"         v={form.gender}/>
           <RR l="Marital Status" v={form.marital_status}/>
           <RR l="Mobile"         v={form.mobile}/>
@@ -351,7 +352,7 @@ const validators = {
   1: f=>{const e={};if(!f.promoter_adviser_id.trim())e.promoter_adviser_id='Enter Promoter ID';if(!f.promoter_name)e.promoter_adviser_id='Please verify the Promoter ID first';return e;},
   2: f=>{const e={};if(!f.full_name.trim())e.full_name='Full name is required';if(!f.father_spouse_name.trim())e.father_spouse_name='Father / Spouse name is required';if(!f.date_of_birth)e.date_of_birth='Date of birth is required';if(!f.email.trim())e.email='Email is required';else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))e.email='Valid email is required';if(!f.gender)e.gender='Gender is required';if(!f.marital_status)e.marital_status='Marital status is required';if(!f.mobile||f.mobile.length!==10)e.mobile='Valid 10-digit mobile required';if(!f.aadhar_number||f.aadhar_number.length!==12)e.aadhar_number='Valid 12-digit Aadhar required';return e;},
   3: f=>{const e={};if(!f.corr_address.trim())e.corr_address='Address is required';if(!f.corr_city.trim())e.corr_city='City is required';if(!f.corr_state)e.corr_state='State is required';if(!f.corr_pincode||f.corr_pincode.length!==6)e.corr_pincode='Valid 6-digit pincode required';if(!f.same_as_corr){if(!f.perm_address.trim())e.perm_address='Address is required';if(!f.perm_city.trim())e.perm_city='City is required';if(!f.perm_state)e.perm_state='State is required';if(!f.perm_pincode||f.perm_pincode.length!==6)e.perm_pincode='Valid 6-digit pincode required';}return e;},
-  4: f=>{const e={};if(!f.nominee_name.trim())e.nominee_name='Nominee name is required';if(!f.nominee_age)e.nominee_age='Age is required';if(!f.nominee_relationship)e.nominee_relationship='Relationship is required';if(!f.nominee_same_as_member){if(!f.nominee_address.trim())e.nominee_address='Address is required';if(!f.nominee_city.trim())e.nominee_city='City is required';if(!f.nominee_state)e.nominee_state='State is required';if(!f.nominee_pincode||f.nominee_pincode.length!==6)e.nominee_pincode='Valid pincode required';}return e;},
+  4: f=>{const e={};if(!f.nominee_name.trim())e.nominee_name='Nominee name is required';if(f.nominee_age===''||f.nominee_age==null)e.nominee_age='Nominee age is required';else if(Number(f.nominee_age)<0||Number(f.nominee_age)>120)e.nominee_age='Enter a valid nominee age (0–120)';if(!f.nominee_relationship)e.nominee_relationship='Relationship is required';if(!f.nominee_same_as_member){if(!f.nominee_address.trim())e.nominee_address='Address is required';if(!f.nominee_city.trim())e.nominee_city='City is required';if(!f.nominee_state)e.nominee_state='State is required';if(!f.nominee_pincode||f.nominee_pincode.length!==6)e.nominee_pincode='Valid pincode required';}return e;},
   5: ()=>({}),
 };
 

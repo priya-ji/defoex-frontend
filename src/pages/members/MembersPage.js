@@ -21,34 +21,52 @@ const INVESTOR_FEE = 10;
 
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
 
-const validateRegistrationStep = (stepNum, form) => {
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
+  'Uttarakhand', 'West Bengal', 'Andaman & Nicobar Islands', 'Chandigarh',
+  'Dadra & Nagar Haveli', 'Daman & Diu', 'Delhi', 'Jammu & Kashmir', 'Ladakh',
+  'Lakshadweep', 'Puducherry',
+];
+
+const NOMINEE_RELATIONS = ['Son', 'Daughter', 'Spouse', 'Father', 'Mother', 'Brother', 'Sister', 'Other'];
+
+const getRegistrationStepErrors = (stepNum, form) => {
+  const e = {};
   if (stepNum === 1) {
-    if (!form.full_name?.trim()) return 'Full Name is required';
-    if (!form.father_spouse_name?.trim()) return 'Father / Spouse Name is required';
-    if (!form.date_of_birth) return 'Date of Birth is required';
-    if (!form.email?.trim()) return 'Email is required';
-    if (!isValidEmail(form.email)) return 'Enter a valid email address';
-    if (!form.mobile || form.mobile.length !== 10) return 'Valid 10-digit Mobile Number is required';
+    if (!form.full_name?.trim()) e.full_name = 'Full Name is required';
+    if (!form.father_spouse_name?.trim()) e.father_spouse_name = 'Father / Spouse Name is required';
+    if (!form.date_of_birth) e.date_of_birth = 'Date of Birth is required';
+    if (!form.email?.trim()) e.email = 'Email is required';
+    else if (!isValidEmail(form.email)) e.email = 'Enter a valid email address';
+    if (!form.mobile || form.mobile.length !== 10) e.mobile = 'Valid 10-digit Mobile Number is required';
   }
   if (stepNum === 2) {
-    if (!form.corr_address?.trim()) return 'Address is required';
-    if (!form.corr_city?.trim()) return 'City is required';
-    if (!form.corr_state?.trim()) return 'State is required';
-    if (!form.corr_pincode || form.corr_pincode.length !== 6) return 'Valid 6-digit Pincode is required';
-    if (!form.aadhar_number || form.aadhar_number.length !== 12) return 'Valid 12-digit Aadhar Number is required';
+    if (!form.corr_address?.trim()) e.corr_address = 'Address is required';
+    if (!form.corr_city?.trim()) e.corr_city = 'City is required';
+    if (!form.corr_state?.trim()) e.corr_state = 'State is required';
+    if (!form.corr_pincode || form.corr_pincode.length !== 6) e.corr_pincode = 'Valid 6-digit Pincode is required';
+    if (!form.aadhar_number || form.aadhar_number.length !== 12) e.aadhar_number = 'Valid 12-digit Aadhar Number is required';
   }
   if (stepNum === 3) {
-    if (!form.nominee_name?.trim()) return 'Nominee Name is required';
-    if (!form.nominee_relationship) return 'Relationship is required';
-    if (!form.nominee_age || Number(form.nominee_age) < 0) return 'Nominee Age is required';
+    if (!form.nominee_name?.trim()) e.nominee_name = 'Nominee Name is required';
+    if (!form.nominee_relationship) e.nominee_relationship = 'Relationship is required';
+    if (form.nominee_age === '' || form.nominee_age == null) e.nominee_age = 'Nominee Age is required';
+    else if (Number(form.nominee_age) < 0 || Number(form.nominee_age) > 120) e.nominee_age = 'Enter a valid nominee age (0–120)';
+  }
+  return e;
+};
+
+const validateRegistrationForm = (form) => {
+  for (const step of [1, 2, 3]) {
+    const errs = getRegistrationStepErrors(step, form);
+    const first = Object.values(errs)[0];
+    if (first) return { message: first, step, errors: errs };
   }
   return null;
 };
-
-const validateRegistrationForm = (form) =>
-  validateRegistrationStep(1, form)
-  || validateRegistrationStep(2, form)
-  || validateRegistrationStep(3, form);
 
 export default function MembersPage() {
   const { user } = useAuth();
@@ -304,6 +322,7 @@ function NewRegistration({ onDone }) {
   const [adviser,     setAdviser]     = useState(null);
   const [adviserErr,  setAdviserErr]  = useState('');
   const [submitting,  setSubmitting]  = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [credModal,   setCredModal]   = useState(null);
   const [form, setForm] = useState({
     salutation:'', full_name:'', father_spouse_name:'', date_of_birth:'', gender:'Male',
@@ -346,8 +365,14 @@ function NewRegistration({ onDone }) {
   };
 
   const submit = async () => {
-    const err = validateRegistrationForm(form);
-    if (err) { toast.error(err); return; }
+    const validation = validateRegistrationForm(form);
+    if (validation) {
+      setFieldErrors(validation.errors);
+      setStep(validation.step);
+      toast.error(validation.message);
+      return;
+    }
+    setFieldErrors({});
     setSubmitting(true);
     try {
       const { data } = await memberService.register({
@@ -371,6 +396,10 @@ function NewRegistration({ onDone }) {
   return (
     <>
     <Panel title="New Investor Registration">
+      <Alert type="info" style={{ marginBottom: 16 }}>
+        Required fields (<span style={{ color: 'var(--danger)' }}>*</span>): Father / Spouse Name, Date of Birth,
+        Email, Address, City, State, Pincode, Nominee Name, Relationship, and Nominee Age.
+      </Alert>
       {/* Step indicators */}
       <div style={{display:'flex',alignItems:'center',marginBottom:24}}>
         {STEPS.map((s,i)=>(
@@ -467,19 +496,19 @@ function NewRegistration({ onDone }) {
         <div>
           <div className="reg-form-row">
             <Field label="Salutation"><Select value={form.salutation} onChange={e=>set('salutation',e.target.value)}><option value="">—</option>{['Mr.','Mrs.','Ms.','Dr.'].map(s=><option key={s}>{s}</option>)}</Select></Field>
-            <Field label="Full Name" required><Input value={form.full_name} onChange={e=>set('full_name',e.target.value)} placeholder="As per Aadhar" /></Field>
+            <Field label="Full Name" required error={fieldErrors.full_name}><Input required value={form.full_name} onChange={e=>set('full_name',e.target.value)} placeholder="As per Aadhar" /></Field>
           </div>
           <div className="reg-form-row">
-            <Field label="Father / Spouse Name" required><Input value={form.father_spouse_name} onChange={e=>set('father_spouse_name',e.target.value)} /></Field>
-            <Field label="Mobile Number" required><Input value={form.mobile} onChange={e=>set('mobile',e.target.value.replace(/\D/g,'').slice(0,10))} maxLength={10} placeholder="10-digit" /></Field>
+            <Field label="Father / Spouse Name" required error={fieldErrors.father_spouse_name}><Input required value={form.father_spouse_name} onChange={e=>set('father_spouse_name',e.target.value)} placeholder="Father's or Spouse's full name" /></Field>
+            <Field label="Mobile Number" required error={fieldErrors.mobile}><Input required value={form.mobile} onChange={e=>set('mobile',e.target.value.replace(/\D/g,'').slice(0,10))} maxLength={10} placeholder="10-digit" /></Field>
           </div>
           <div className="reg-form-row">
-            <Field label="Date of Birth" required><Input type="date" value={form.date_of_birth} onChange={e=>set('date_of_birth',e.target.value)} /></Field>
+            <Field label="Date of Birth" required error={fieldErrors.date_of_birth}><Input required type="date" value={form.date_of_birth} onChange={e=>set('date_of_birth',e.target.value)} /></Field>
             <Field label="Gender"><Select value={form.gender} onChange={e=>set('gender',e.target.value)}>{['Male','Female','Other'].map(g=><option key={g}>{g}</option>)}</Select></Field>
           </div>
           <div className="reg-form-row">
             <Field label="Marital Status"><Select value={form.marital_status} onChange={e=>set('marital_status',e.target.value)}>{['Single','Married','Divorced','Widowed'].map(s=><option key={s}>{s}</option>)}</Select></Field>
-            <Field label="Email" required><Input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="email@example.com" /></Field>
+            <Field label="Email" required error={fieldErrors.email}><Input required type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="email@example.com" /></Field>
           </div>
         </div>
       )}
@@ -489,12 +518,17 @@ function NewRegistration({ onDone }) {
         <div>
           <div style={{fontWeight:700,marginBottom:10}}>Correspondence Address</div>
           <div className="reg-form-row">
-            <Field label="Address" required><Input value={form.corr_address} onChange={e=>set('corr_address',e.target.value)} /></Field>
-            <Field label="City" required><Input value={form.corr_city} onChange={e=>set('corr_city',e.target.value)} /></Field>
+            <Field label="Address" required error={fieldErrors.corr_address}><Input required value={form.corr_address} onChange={e=>set('corr_address',e.target.value)} placeholder="House No., Street, Area" /></Field>
+            <Field label="City" required error={fieldErrors.corr_city}><Input required value={form.corr_city} onChange={e=>set('corr_city',e.target.value)} placeholder="City" /></Field>
           </div>
           <div className="reg-form-row">
-            <Field label="State" required><Input value={form.corr_state} onChange={e=>set('corr_state',e.target.value)} /></Field>
-            <Field label="Pincode" required><Input value={form.corr_pincode} onChange={e=>set('corr_pincode',e.target.value.replace(/\D/g,'').slice(0,6))} maxLength={6} placeholder="6-digit" /></Field>
+            <Field label="State" required error={fieldErrors.corr_state}>
+              <Select required value={form.corr_state} onChange={e=>set('corr_state',e.target.value)}>
+                <option value="">— Select State —</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            </Field>
+            <Field label="Pincode" required error={fieldErrors.corr_pincode}><Input required value={form.corr_pincode} onChange={e=>set('corr_pincode',e.target.value.replace(/\D/g,'').slice(0,6))} maxLength={6} placeholder="6-digit" /></Field>
           </div>
           <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:'0.85rem',marginBottom:12}}>
             <input type="checkbox" checked={form.same_as_corr} onChange={e=>handleSameAddress(e.target.checked)} />
@@ -502,7 +536,7 @@ function NewRegistration({ onDone }) {
           </label>
           <div style={{fontWeight:700,marginBottom:10}}>KYC Documents</div>
           <div className="reg-form-row">
-            <Field label="Aadhar Number" required><Input value={form.aadhar_number} onChange={e=>set('aadhar_number',e.target.value.replace(/\D/g,'').slice(0,12))} maxLength={12} placeholder="12-digit" /></Field>
+            <Field label="Aadhar Number" required error={fieldErrors.aadhar_number}><Input required value={form.aadhar_number} onChange={e=>set('aadhar_number',e.target.value.replace(/\D/g,'').slice(0,12))} maxLength={12} placeholder="12-digit" /></Field>
             <Field label="PAN Number"><Input value={form.pan_number} onChange={e=>set('pan_number',e.target.value.toUpperCase())} /></Field>
           </div>
           <div className="reg-form-row">
@@ -517,10 +551,17 @@ function NewRegistration({ onDone }) {
         <div>
           <div style={{fontWeight:700,marginBottom:10}}>Nominee Details</div>
           <div className="reg-form-row">
-            <Field label="Nominee Name" required><Input value={form.nominee_name} onChange={e=>set('nominee_name',e.target.value)} /></Field>
-            <Field label="Relationship" required><Select value={form.nominee_relationship} onChange={e=>set('nominee_relationship',e.target.value)}><option value="">— Select —</option>{['Son','Daughter','Spouse','Father','Mother','Brother','Sister','Other'].map(r=><option key={r}>{r}</option>)}</Select></Field>
+            <Field label="Nominee Name" required error={fieldErrors.nominee_name}><Input required value={form.nominee_name} onChange={e=>set('nominee_name',e.target.value)} placeholder="Full name" /></Field>
+            <Field label="Relationship" required error={fieldErrors.nominee_relationship}>
+              <Select required value={form.nominee_relationship} onChange={e=>set('nominee_relationship',e.target.value)}>
+                <option value="">— Select —</option>
+                {NOMINEE_RELATIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </Select>
+            </Field>
           </div>
-          <Field label="Nominee Age" required style={{maxWidth:200}}><Input type="number" min="0" value={form.nominee_age} onChange={e=>set('nominee_age',e.target.value)} placeholder="Age" /></Field>
+          <Field label="Nominee Age" required error={fieldErrors.nominee_age} style={{maxWidth:200}}>
+            <Input required type="number" min="0" max="120" value={form.nominee_age} onChange={e=>set('nominee_age',e.target.value)} placeholder="Age" />
+          </Field>
           <div style={{fontWeight:700,margin:'14px 0 10px'}}>Bank Details</div>
           <div className="reg-form-row">
             <Field label="Bank Name"><Input value={form.bank_name} onChange={e=>set('bank_name',e.target.value)} /></Field>
@@ -547,15 +588,21 @@ function NewRegistration({ onDone }) {
             {[
               ['Adviser Code',   adviserCode],
               ['Full Name',      form.full_name],
-              ['Father Name',    form.father_spouse_name||'—'],
+              ['Father / Spouse', form.father_spouse_name],
+              ['Date of Birth',  form.date_of_birth],
+              ['Email',          form.email],
               ['Mobile',         form.mobile],
-              ['Date of Birth',  form.date_of_birth||'—'],
               ['Gender',         form.gender],
-              ['Aadhar',         form.aadhar_number?`XXXX-${form.aadhar_number.slice(-4)}`:'—'],
-              ['PAN',            form.pan_number||'—'],
-              ['City',           form.corr_city||'—'],
-              ['Nominee',        form.nominee_name||'—'],
-              ['Bank',           form.bank_name||'—'],
+              ['Address',        form.corr_address],
+              ['City',           form.corr_city],
+              ['State',          form.corr_state],
+              ['Pincode',        form.corr_pincode],
+              ['Aadhar',         form.aadhar_number ? `XXXX-${form.aadhar_number.slice(-4)}` : '—'],
+              ['PAN',            form.pan_number || '—'],
+              ['Nominee Name',   form.nominee_name],
+              ['Nominee Age',    form.nominee_age],
+              ['Relationship',   form.nominee_relationship],
+              ['Bank',           form.bank_name || '—'],
               ['Member Fees',    `\u20b9${INVESTOR_FEE}`],
               ['Payment Mode',   form.payment_mode],
             ].map(([k,v])=>(
@@ -581,8 +628,13 @@ function NewRegistration({ onDone }) {
           )}
           {step>0 && step<STEPS.length-1 && (
             <button className="btn btn-primary" onClick={()=>{
-              const err = validateRegistrationStep(step, form);
-              if (err) { toast.error(err); return; }
+              const errs = getRegistrationStepErrors(step, form);
+              if (Object.keys(errs).length) {
+                setFieldErrors(errs);
+                toast.error(Object.values(errs)[0]);
+                return;
+              }
+              setFieldErrors({});
               setStep(s=>s+1);
             }}>Next →</button>
           )}
