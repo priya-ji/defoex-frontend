@@ -333,25 +333,40 @@ function RegApprovals({ onRefresh }) {
 function InvApprovals({ onRefresh, setPlanCount }) {
   const { user, wallet: authWallet } = useAuth();
   const [data, setData]       = useState({ items: [], total: 0 });
-  const [branchBalance, setBranchBalance] = useState(null);
+  const [branchBalances, setBranchBalances] = useState({});
   const [loading, setLoading] = useState(false);
   const [detail, setDetail]   = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [acting, setActing]   = useState(false);
+  const isSuperAdmin = user?.role === 'superadmin';
 
   const loadWallet = useCallback(() => {
-    if (authWallet?.current_balance != null) {
-      setBranchBalance(Number(authWallet.current_balance));
+    if (!isSuperAdmin && authWallet?.current_balance != null && user?.branch_id != null) {
+      setBranchBalances({ [user.branch_id]: Number(authWallet.current_balance) });
       return;
     }
     branchService.list()
       .then(r => {
         const branches = r.data?.data || [];
-        const branch = branches.find(b => b.id === user?.branch_id) || branches[0];
-        setBranchBalance(Number(branch?.wallet?.current_balance ?? 0));
+        const map = {};
+        branches.forEach(b => {
+          if (b.id != null) {
+            map[b.id] = Number(b.wallet?.current_balance ?? 0);
+          }
+        });
+        setBranchBalances(map);
       })
-      .catch(() => setBranchBalance(null));
-  }, [authWallet, user?.branch_id]);
+      .catch(() => setBranchBalances({}));
+  }, [authWallet, user?.branch_id, isSuperAdmin]);
+
+  const getBranchBalance = (plan) => {
+    const bid = plan?.branch_id;
+    if (bid == null) return null;
+    if (plan?.branch_current_balance != null) {
+      return Number(plan.branch_current_balance);
+    }
+    return branchBalances[bid] ?? null;
+  };
 
   const load = useCallback(() => {
     setLoading(true);
@@ -361,6 +376,15 @@ function InvApprovals({ onRefresh, setPlanCount }) {
         const total = Number(r.data.total ?? items.length) || 0;
         setData({ items, total });
         if (setPlanCount) setPlanCount(total);
+        const fromPlans = {};
+        items.forEach(p => {
+          if (p.branch_id != null && p.branch_current_balance != null) {
+            fromPlans[p.branch_id] = Number(p.branch_current_balance);
+          }
+        });
+        if (Object.keys(fromPlans).length) {
+          setBranchBalances(prev => ({ ...prev, ...fromPlans }));
+        }
       })
       .finally(() => setLoading(false));
   }, [setPlanCount]);
@@ -368,13 +392,19 @@ function InvApprovals({ onRefresh, setPlanCount }) {
   useEffect(() => { loadWallet(); }, [loadWallet]);
   useEffect(() => { load(); }, [load]);
 
-  const canAfford = (plan) => branchBalance == null || Number(plan.monthly_amount || 0) <= branchBalance;
+  const canAfford = (plan) => {
+    const bal = getBranchBalance(plan);
+    return bal == null || Number(plan.monthly_amount || 0) <= bal;
+  };
 
   const act = async (plan, action) => {
+    const branchBalance = getBranchBalance(plan);
     if (action === 'approve' && !canAfford(plan)) {
       toast.error(
         `Insufficient branch balance. Need ₹${Number(plan.monthly_amount).toLocaleString('en-IN')}, ` +
-        `available ₹${Number(branchBalance || 0).toLocaleString('en-IN')}. Ask admin to top up Branch Wallet.`
+        `available ₹${Number(branchBalance || 0).toLocaleString('en-IN')}` +
+        (plan.branch_name ? ` (${plan.branch_name})` : '') +
+        `. Ask admin to top up Branch Wallet.`
       );
       return;
     }
@@ -386,6 +416,12 @@ function InvApprovals({ onRefresh, setPlanCount }) {
           ? `✅ Plan ${plan.irn} approved — wallet updated`
           : `❌ Plan ${plan.irn} rejected`
       ));
+      if (resp?.wallet && plan.branch_id != null) {
+        setBranchBalances(prev => ({
+          ...prev,
+          [plan.branch_id]: Number(resp.wallet.current_balance),
+        }));
+      }
       setConfirm(null);
       setDetail(null);
       load();
@@ -410,10 +446,13 @@ function InvApprovals({ onRefresh, setPlanCount }) {
             {data.items?.length > 0 && (
               <Alert type="warning">
                 <strong>Note:</strong> Approving a plan will automatically deduct the monthly amount
-                from the branch current balance and add it to the cash wallet.
+                from that plan&apos;s branch current balance and add it to the cash wallet.
                 Benefits will be calculated for the adviser.
-                {branchBalance != null && (
-                  <> Branch current balance: <strong>₹{branchBalance.toLocaleString('en-IN')}</strong>.</>
+                {!isSuperAdmin && data.items[0] && getBranchBalance(data.items[0]) != null && (
+                  <> Branch current balance: <strong>₹{getBranchBalance(data.items[0]).toLocaleString('en-IN')}</strong>.</>
+                )}
+                {isSuperAdmin && (
+                  <> Each plan deducts from its own branch wallet — see Branch Balance column.</>
                 )}
               </Alert>
             )}
@@ -430,6 +469,7 @@ function InvApprovals({ onRefresh, setPlanCount }) {
                   <th>#</th>
                   <th>Plan ID</th>
                   <th>Investor ID</th>
+                  {isSuperAdmin && <th>Branch</th>}
                   <th>Plan</th>
                   <th>Tenure</th>
                   <th>Monthly</th>
@@ -446,6 +486,14 @@ function InvApprovals({ onRefresh, setPlanCount }) {
                     <td>{i + 1}</td>
                     <td><code className="id-code irn">{p.irn}</code></td>
                     <td><code className="id-code">{p.investor_id}</code></td>
+                    {isSuperAdmin && (
+                      <td>
+                        <div>{p.branch_name || '—'}</div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                          Bal: {fmt(getBranchBalance(p))}
+                        </div>
+                      </td>
+                    )}
                     <td><strong>{p.plan_name}</strong></td>
                     <td>{p.plan_tenure}</td>
                     <td><strong style={{color:'var(--primary)'}}>{fmt(p.monthly_amount)}</strong></td>
@@ -469,7 +517,7 @@ function InvApprovals({ onRefresh, setPlanCount }) {
                 ))}
                 {!data.items?.length && (
                   <tr>
-                    <td colSpan={11} className="empty-row">
+                    <td colSpan={isSuperAdmin ? 12 : 11} className="empty-row">
                       <div className="empty-icon">✅</div>
                       <div>No pending investment plans</div>
                       <div className="text-muted" style={{fontSize:'0.78rem'}}>All plans have been processed</div>
@@ -517,6 +565,12 @@ function InvApprovals({ onRefresh, setPlanCount }) {
                 <div className="detail-row"><span>Adviser Code</span>
                   <strong><code>{detail.adviser_code}</code></strong></div>
                 <div className="ds-title" style={{marginTop:12}}>Wallet Impact on Approval</div>
+                {detail.branch_name && (
+                  <div className="detail-row"><span>Branch</span>
+                    <strong>{detail.branch_name}</strong></div>
+                )}
+                <div className="detail-row"><span>Branch Balance</span>
+                  <strong>{fmt(getBranchBalance(detail))}</strong></div>
                 <div className="wallet-impact">
                   <div className="wi-row">
                     <span>Current Balance</span>
